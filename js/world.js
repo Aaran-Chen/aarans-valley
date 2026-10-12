@@ -157,7 +157,8 @@ export function buildWorld() {
     }
     interact.push({ id: `door:${d.id}`, kind: 'door', district: d, x: door.doorX * T, y: door.doorY * T, w: 2 * T, h: T, label: d.name });
     // lamps along the street edges, between display pairs
-    for (let p = 0; p <= pairs; p++) { const t = 2 + 3 * p; for (const c of [-1, 4]) { const [lx, ly] = at(arm, t, c); lamp(lx, ly); } }
+    // lamps only at the far end of the street, where they can't stand in front of a display
+    for (const c of [-1, 4]) { const [lx, ly] = at(arm, Math.max(lastT + 2, endT - 1), c); lamp(lx, ly); }
 
     const [gx, gy] = at(arm, 1, 1);
     d._gate = { x: (gx + (arm.axis === 'v' ? 1 : 0)) * T, y: gy * T + (arm.axis === 'v' ? 24 : 32), dir: { n: 'up', s: 'down', e: 'right', w: 'left' }[slot] };
@@ -188,7 +189,7 @@ export function buildWorld() {
   block(SQ.x1 - 2, SQ.y1 - 1, SQ.x1 - 1, SQ.y1 - 1);
   interact.push({ id: 'bench:sq', kind: 'bench', x: (SQ.x1 - 2) * T, y: (SQ.y1 - 1) * T, w: 2 * T, h: T, label: 'Bench' });
   for (const [px, py] of [[SQ.x0, SQ.y0 + 3], [SQ.x1, SQ.y0 + 3], [SQ.x0, SQ.y1 - 3], [SQ.x1, SQ.y1 - 3]]) { sprite('planter', px, py, 32, 32); block(px, py); }
-  for (const [x, y] of [[SQ.x0, SQ.y1], [SQ.x1, SQ.y1]]) lamp(x, y);
+  for (const [x, y] of [[SQ.x0, SQ.y0], [SQ.x1, SQ.y0 + 2], [SQ.x0, SQ.y1], [SQ.x1, SQ.y1]]) lamp(x, y);
 
   // ---------------------------------------------------------------------------
   // Beach Road: Aaran's house (west of the south street) and the beach

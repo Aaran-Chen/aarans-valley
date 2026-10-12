@@ -188,7 +188,6 @@ body.inmenu #hud { visibility: hidden; }
 .coarse .seg button { min-height: 40px; min-width: 40px; }
 .coarse .swatch { width: 34px; height: 34px; }
 .coarse .gslots .slot { --slot: 52px; }
-.coarse .mpin, .coarse .mq { width: 26px; height: 26px; }
 .coarse #tAct { width: 60px; height: 60px; }
 @media (max-width: 720px) {
   .mwrap { width: calc(100vw - 12px); height: calc(100dvh - 12px); }

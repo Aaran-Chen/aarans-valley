@@ -385,6 +385,8 @@ function tabMap(c) {
       let pin;
       if (have) pin = copyOf(iconFor(it.lot), { className: 'mpin', title: it.lot.title });
       else pin = el('div', { className: 'mq', textContent: '?', title: `Not found yet (${it.district.name})`, style: `background:${it.district.color}` });
+      const pinSize = Math.round(Math.max(10, Math.min(26, (w / world.W) * 1.7)));
+      pin.style.width = pin.style.height = `${pinSize}px`;
       pin.style.left = `${x}px`; pin.style.top = `${y}px`;
       pin.onclick = (e) => { e.stopPropagation(); UI.closeMenu(); sfx.warp(); game.warpTo(it); };
       stage.append(pin);

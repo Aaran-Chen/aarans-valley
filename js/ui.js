@@ -155,7 +155,7 @@ export function banner(title, sub, color) {
   $('p', b).textContent = sub || '';
   b.classList.add('show');
   clearTimeout(bannerTimer);
-  bannerTimer = setTimeout(() => b.classList.remove('show'), 2600);
+  bannerTimer = setTimeout(() => b.classList.remove('show'), 1800);
 }
 function shadeCss(hex) {
   const n = parseInt(hex.slice(1), 16);
