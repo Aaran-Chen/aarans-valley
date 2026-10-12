@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "island", "runtimeExecutable": "python3", "runtimeArgs": ["/Users/otterbot/Code/AaranIsland/serve.py"], "port": 8742 }
+  ]
+}

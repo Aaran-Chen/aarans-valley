@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aaran</title>
+<meta name="description" content="Aaran's projects: robotics, software tools and machine learning.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800&family=Jersey+15&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fbf5ea; --bg-2: #f3e8d4; --card: #fffdf8; --ink: #2b1d14; --soft: #6e5a4a; --line: rgba(43, 29, 20, .12);
+    --accent: #b3461f; --accent-ink: #fff; --shadow: 0 1px 0 rgba(43,29,20,.06), 0 8px 24px rgba(43,29,20,.07);
+    --radius: 14px; --pixel: 'Jersey 15', ui-rounded, system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #16131c; --bg-2: #1f1a28; --card: #231d2e; --ink: #f3ece2; --soft: #b7aabd; --line: rgba(243,236,226,.12); --accent: #f08a5a; --accent-ink: #1a1016; --shadow: 0 1px 0 rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25); } }
+  :root[data-theme="dark"] { --bg: #16131c; --bg-2: #1f1a28; --card: #231d2e; --ink: #f3ece2; --soft: #b7aabd; --line: rgba(243,236,226,.12); --accent: #f08a5a; --accent-ink: #1a1016; --shadow: 0 1px 0 rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25); }
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 500 17px/1.6 Nunito, system-ui, sans-serif; font-synthesis: none; }
+  a { color: inherit; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+  header.nav { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+  header.nav .wrap { display: flex; align-items: center; gap: 18px; height: 60px; }
+  .brand { font: 400 26px var(--pixel); text-decoration: none; display: flex; align-items: center; gap: 8px; }
+  .brand canvas { width: 28px; height: 28px; image-rendering: pixelated; }
+  nav.links { display: flex; gap: 16px; margin-left: auto; font-weight: 700; }
+  nav.links a { text-decoration: none; color: var(--soft); }
+  nav.links a:hover { color: var(--ink); }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 10px; font: 700 15px Nunito, sans-serif; text-decoration: none; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; }
+  .btn:hover { border-color: var(--accent); }
+  .btn.play { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-family: var(--pixel); font-size: 20px; font-weight: 400; box-shadow: 0 3px 0 color-mix(in srgb, var(--accent) 60%, #000); }
+  .btn.play:hover { transform: translateY(-1px); }
+  .iconbtn { width: 38px; height: 38px; padding: 0; justify-content: center; }
+  .hero { display: grid; grid-template-columns: 1.2fr .8fr; gap: 32px; align-items: center; padding: 56px 0 40px; }
+  .hero h1 { font: 400 clamp(48px, 8vw, 76px)/1 var(--pixel); margin: 0 0 12px; letter-spacing: .01em; }
+  .hero .tag { font-size: 21px; font-weight: 700; margin: 0 0 10px; }
+  .hero p { color: var(--soft); margin: 0 0 18px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .scene { background: linear-gradient(#a8d8f0, #d8eef6 55%, #8fc75f 55%); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; aspect-ratio: 4 / 3; display: grid; place-items: end center; position: relative; }
+  .scene canvas { width: 100%; height: 100%; image-rendering: pixelated; display: block; }
+  section { padding: 36px 0; border-top: 1px solid var(--line); }
+  h2 { font: 400 38px var(--pixel); margin: 0 0 8px; }
+  .lead { color: var(--soft); margin: 0 0 20px; max-width: 70ch; }
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 22px; }
+  .filters button { font: 700 14px Nunito, sans-serif; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+  .filters button i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .filters button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .group { margin: 0 0 28px; }
+  .group h3 { font: 400 26px var(--pixel); margin: 0 0 4px; display: flex; align-items: center; gap: 10px; }
+  .group h3 i { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+  .group > p { color: var(--soft); margin: 0 0 14px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
+  .cards:has(details[open]) { align-items: start; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 8px; }
+  .card .top { display: flex; gap: 12px; align-items: flex-start; }
+  .card canvas { width: 48px; height: 48px; image-rendering: pixelated; flex: none; background: var(--bg-2); border-radius: 10px; padding: 4px; }
+  .card h4 { margin: 0; font-size: 18px; line-height: 1.25; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+  .chip { font-size: 12px; font-weight: 800; padding: 1px 9px; border-radius: 999px; background: var(--bg-2); color: var(--soft); }
+  .chip.s { color: #fff; }
+  .card .one { margin: 0; font-weight: 600; }
+  details { border-top: 1px dashed var(--line); padding-top: 8px; margin-top: auto; }
+  summary { cursor: pointer; font-weight: 800; color: var(--accent); list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: ' +'; }
+  details[open] summary::after { content: ' \2212'; }
+  details p { margin: 8px 0; color: var(--soft); }
+  details ul { margin: 4px 0 8px; padding-left: 20px; color: var(--soft); }
+  .about { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .contact { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+  .contact canvas { width: 72px; height: 72px; image-rendering: pixelated; }
+  footer { padding: 30px 0 60px; border-top: 1px solid var(--line); color: var(--soft); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .todo { background: #fff3c4; color: #6b4a00; border-radius: 6px; padding: 0 4px; }
+  :root[data-theme="dark"] .todo { background: #4a3a10; color: #ffe39a; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .todo { background: #4a3a10; color: #ffe39a; } }
+  @media (max-width: 760px) {
+    .hero { grid-template-columns: 1fr; padding-top: 32px; }
+    .about { grid-template-columns: 1fr; }
+    nav.links { display: none; }
+    header.nav .wrap { gap: 10px; }
+    .brand { margin-right: auto; }
+    .contact canvas { display: none; }
+  }
+  @media print { header.nav, .filters, .btn.play, #theme, .scene { display: none !important; } details { display: block; } details > * { display: block; } section { break-inside: avoid; } body { background: #fff; color: #000; } }
+</style>
+</head>
+<body>
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top"><canvas id="brandIcon" width="32" height="32" aria-hidden="true"></canvas><span id="brandName"></span></a>
+    <nav class="links" aria-label="Sections"><a href="#projects">Projects</a><a href="#about">About</a><a href="#contact">Contact</a></nav>
+    <button class="btn iconbtn" id="theme" title="Switch light / dark" aria-label="Switch light or dark theme">&#9681;</button>
+    <a class="btn play" href="index.html">&#9654; Play the valley</a>
+  </div>
+</header>
+<main class="wrap" id="top">
+  <div class="hero">
+    <div>
+      <h1 id="hName"></h1>
+      <p class="tag" id="hTag"></p>
+      <p id="hLooking"></p>
+      <div class="row" id="hLinks"></div>
+    </div>
+    <div class="scene" aria-hidden="true"><canvas id="scene" width="192" height="144"></canvas></div>
+  </div>
+  <section id="projects">
+    <h2>Projects</h2>
+    <p class="lead" id="pLead"></p>
+    <div class="filters" id="filters" role="group" aria-label="Filter projects"></div>
+    <div id="groups"></div>
+  </section>
+  <section id="about">
+    <h2>About</h2>
+    <div class="about"><p id="aText"></p><p id="aLooking" class="lead"></p></div>
+  </section>
+  <section id="contact">
+    <h2>Contact</h2>
+    <div class="contact"><canvas id="mailIcon" width="32" height="32" aria-hidden="true"></canvas><div class="row" id="cLinks"></div></div>
+  </section>
+  <footer><span id="fName"></span><a class="btn play" href="index.html">&#9654; Prefer exploring? Play the valley</a></footer>
+</main>
+<script type="module" src="js/classic.js"></script>
+</body>
+</html>

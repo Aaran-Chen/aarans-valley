@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aaran's Island</title>
+<meta name="description" content="A drivable grid island where every lot is a project.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js" } }
+</script>
+<style>
+  :root {
+    --ink: #2a2238;
+    --ink-soft: #5d5470;
+    --paper: #fffaf0;
+    --paper-2: #f5ecdc;
+    --line: rgba(42, 34, 56, 0.14);
+    --shadow: 0 6px 24px rgba(42, 34, 56, 0.18);
+    --accent: #e0525e;
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #6fb3c6; color: var(--ink); font-family: Nunito, system-ui, sans-serif; }
+  canvas#world { position: fixed; inset: 0; width: 100%; height: 100%; display: block; outline: none; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  a { color: inherit; }
+  .pill { background: var(--paper); border-radius: 999px; box-shadow: var(--shadow); border: 1px solid var(--line); }
+  .kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 24px; padding: 0 7px; border-radius: 7px; background: var(--ink); color: var(--paper); font: 800 12px Nunito, sans-serif; letter-spacing: 0.02em; }
+
+  /* HUD */
+  #hud { position: fixed; inset: 0; pointer-events: none; }
+  #hud > * { pointer-events: auto; }
+  #namePill { position: absolute; top: 14px; left: 14px; padding: 8px 14px; font: 800 15px Nunito, sans-serif; display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); }
+  #namePill .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+  #where { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); padding: 8px 16px; font: 800 15px Nunito, sans-serif; display: flex; gap: 8px; align-items: center; white-space: nowrap; }
+  #where .swatch { width: 12px; height: 12px; border-radius: 4px; background: #999; }
+  #where .sub { color: var(--ink-soft); font-weight: 700; }
+  #tools { position: absolute; top: 14px; right: 14px; display: flex; gap: 8px; }
+  .iconBtn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: var(--paper); box-shadow: var(--shadow); display: grid; place-items: center; }
+  .iconBtn svg { width: 19px; height: 19px; stroke: var(--ink); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .iconBtn:hover { background: var(--paper-2); }
+  #keys { position: absolute; top: 64px; left: 50%; transform: translateX(-50%); padding: 6px 10px; display: flex; gap: 12px; font: 700 13px Nunito, sans-serif; white-space: nowrap; }
+  #keys span { display: inline-flex; gap: 5px; align-items: center; }
+  #visited { position: absolute; left: 14px; bottom: 14px; padding: 8px 14px; font: 800 13px Nunito, sans-serif; display: flex; align-items: center; gap: 10px; }
+  #visited .bar { width: 90px; height: 7px; border-radius: 4px; background: var(--paper-2); overflow: hidden; }
+  #visited .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .4s; }
+  #minimap { position: absolute; right: 14px; bottom: 14px; width: 168px; height: 168px; border-radius: 22px; box-shadow: var(--shadow); border: 3px solid var(--paper); cursor: pointer; background: #6fb3c6; }
+  #prompt { position: absolute; left: 50%; bottom: 26px; transform: translate(-50%, 20px); opacity: 0; transition: all .2s; padding: 10px 18px; font: 800 15px Nunito, sans-serif; display: flex; gap: 10px; align-items: center; pointer-events: auto; }
+  #prompt.show { opacity: 1; transform: translate(-50%, 0); }
+  #prompt .code { font: 800 12px Nunito, sans-serif; padding: 2px 8px; border-radius: 6px; color: #fff; }
+  #toast { position: absolute; top: 112px; left: 50%; transform: translate(-50%, -10px); opacity: 0; transition: all .35s; padding: 12px 20px; text-align: center; pointer-events: none; border-radius: var(--radius); }
+  #toast.show { opacity: 1; transform: translate(-50%, 0); }
+  #toast h3 { margin: 0; font: 800 22px 'Baloo 2', sans-serif; line-height: 1.1; }
+  #toast p { margin: 2px 0 0; font: 700 13px Nunito, sans-serif; color: var(--ink-soft); }
+
+  /* card */
+  #card { position: fixed; top: 70px; right: 14px; bottom: 196px; width: min(400px, calc(100vw - 28px)); background: var(--paper); border-radius: 22px; box-shadow: var(--shadow); border: 1px solid var(--line); transform: translateX(calc(100% + 30px)); transition: transform .3s cubic-bezier(.2,.8,.2,1); display: flex; flex-direction: column; overflow: hidden; }
+  #card.open { transform: none; }
+  #card header { padding: 18px 20px 14px; color: #fff; position: relative; }
+  #card header .addr { font: 800 12px Nunito, sans-serif; letter-spacing: .08em; text-transform: uppercase; opacity: .9; }
+  #card header h2 { margin: 4px 0 0; font: 800 28px/1.05 'Baloo 2', sans-serif; padding-right: 36px; }
+  #card header .close { position: absolute; top: 14px; right: 14px; width: 32px; height: 32px; border-radius: 50%; border: 0; background: rgba(255,255,255,.25); color: #fff; font: 800 18px Nunito, sans-serif; }
+  #card .meta { display: flex; gap: 8px; padding: 12px 20px 0; flex-wrap: wrap; }
+  .chip { font: 800 12px Nunito, sans-serif; padding: 3px 10px; border-radius: 999px; background: var(--paper-2); }
+  #card .scroll { overflow-y: auto; padding: 8px 20px 16px; flex: 1; }
+  #card .one { font: 800 17px/1.35 Nunito, sans-serif; margin: 10px 0; }
+  #card .body { font: 600 15px/1.55 Nunito, sans-serif; color: var(--ink-soft); margin: 0 0 12px; }
+  #card ul { margin: 0 0 12px; padding-left: 20px; font: 700 14px/1.6 Nunito, sans-serif; }
+  #card .links { display: flex; gap: 8px; flex-wrap: wrap; }
+  #card .links a { font: 800 13px Nunito, sans-serif; padding: 7px 12px; border-radius: 999px; background: var(--ink); color: var(--paper); text-decoration: none; }
+  #card footer { display: flex; justify-content: space-between; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line); }
+  #card footer button { border: 1px solid var(--line); background: var(--paper-2); border-radius: 999px; padding: 8px 14px; font: 800 13px Nunito, sans-serif; }
+  #card footer button:disabled { opacity: .35; cursor: default; }
+
+  /* map */
+  #map { position: fixed; inset: 0; background: rgba(28, 34, 58, 0.72); backdrop-filter: blur(4px); display: none; }
+  #map.open { display: flex; }
+  #map aside { width: 280px; margin: 14px; background: var(--paper); border-radius: 22px; box-shadow: var(--shadow); overflow-y: auto; padding: 18px; flex-shrink: 0; }
+  #map aside .eyebrow { font: 800 12px Nunito, sans-serif; letter-spacing: .1em; color: var(--accent); text-transform: uppercase; }
+  #map aside h2 { margin: 2px 0 4px; font: 800 30px 'Baloo 2', sans-serif; line-height: 1; }
+  #map aside p { margin: 0 0 14px; font: 600 13px/1.4 Nunito, sans-serif; color: var(--ink-soft); }
+  #map aside h4 { margin: 16px 0 6px; font: 800 12px Nunito, sans-serif; letter-spacing: .08em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+  #map aside h4 button { margin-left: auto; border: 0; background: none; font: 800 11px Nunito, sans-serif; color: var(--ink-soft); text-decoration: underline; }
+  #map aside .row { display: flex; align-items: center; gap: 10px; width: 100%; border: 0; background: none; padding: 6px 6px; border-radius: 10px; text-align: left; font: 800 14px Nunito, sans-serif; }
+  #map aside .row:hover { background: var(--paper-2); }
+  #map aside .row .n { font: 800 11px Nunito, sans-serif; color: #fff; border-radius: 6px; padding: 2px 6px; min-width: 28px; text-align: center; }
+  #map aside .row .tick { margin-left: auto; color: #3fa37a; font-weight: 800; }
+  #map .stage { flex: 1; display: grid; place-items: center; position: relative; min-width: 0; }
+  #map canvas { border-radius: 26px; box-shadow: 0 10px 40px rgba(0,0,0,.35); cursor: crosshair; max-width: 100%; }
+  #map .closeMap { position: absolute; top: 14px; right: 14px; }
+  #map .hint { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); padding: 8px 14px; font: 700 13px Nunito, sans-serif; display: flex; gap: 14px; white-space: nowrap; }
+
+  /* intro */
+  #intro { position: fixed; inset: 0; display: grid; place-items: center; background: linear-gradient(180deg, rgba(246, 190, 150, .82), rgba(160, 130, 220, .82)); overflow-y: auto; padding: 24px 16px; }
+  #intro.hide { display: none; }
+  #intro .box { max-width: 640px; width: 100%; text-align: center; }
+  #intro .eyebrow { font: 800 13px Nunito, sans-serif; letter-spacing: .14em; color: #8a2a3a; text-transform: uppercase; }
+  #intro h1 { margin: 4px 0 6px; font: 800 clamp(40px, 8vw, 64px)/1 'Baloo 2', sans-serif; }
+  #intro .tag { font: 800 18px/1.4 Nunito, sans-serif; margin: 0 0 8px; }
+  #intro .blurb { font: 700 15px/1.5 Nunito, sans-serif; color: #3e3552; margin: 0 auto 20px; max-width: 520px; }
+  #intro .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 22px; text-align: left; max-width: 520px; margin: 0 auto 22px; font: 700 14px Nunito, sans-serif; }
+  #intro .grid div { display: flex; gap: 10px; align-items: center; }
+  #intro .districts { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 0 0 22px; }
+  #intro .districts span { font: 800 13px Nunito, sans-serif; color: #fff; padding: 5px 12px; border-radius: 999px; }
+  #intro .go { border: 0; background: var(--ink); color: var(--paper); font: 800 18px Nunito, sans-serif; padding: 14px 30px; border-radius: 999px; box-shadow: var(--shadow); }
+  #intro .go:disabled { opacity: .6; }
+  #intro .alt { display: block; margin-top: 14px; font: 800 14px Nunito, sans-serif; }
+
+  /* touch controls */
+  #touch { display: none; }
+  .coarse #touch { display: block; }
+  .coarse #keys { display: none; }
+  #joy { position: absolute; left: 22px; bottom: 70px; width: 130px; height: 130px; border-radius: 50%; background: rgba(255, 250, 240, .45); border: 2px solid rgba(255,250,240,.8); touch-action: none; }
+  #joy i { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; background: var(--paper); box-shadow: var(--shadow); }
+  #touchF { position: absolute; right: 196px; bottom: 40px; width: 64px; height: 64px; border-radius: 50%; border: 0; background: var(--ink); color: var(--paper); font: 800 22px Nunito, sans-serif; box-shadow: var(--shadow); }
+
+  @media (max-width: 720px) {
+    #keys { display: none; }
+    #where { top: 64px; font-size: 13px; }
+    #minimap { width: 120px; height: 120px; }
+    #touchF { right: 14px; bottom: 150px; }
+    #joy { bottom: 24px; left: 16px; }
+    #visited { display: none; }
+    #prompt { bottom: 226px; max-width: calc(100% - 32px); font-size: 13px; }
+    #prompt .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #card { top: auto; bottom: 0; right: 0; left: 0; width: 100%; height: 62vh; border-radius: 22px 22px 0 0; transform: translateY(105%); }
+    #map aside { display: none; }
+    #intro .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<canvas id="world" tabindex="0"></canvas>
+
+<div id="hud" hidden>
+  <button id="namePill" class="pill"><span class="dot"></span><span id="nameText"></span></button>
+  <div id="where" class="pill"><span class="swatch"></span><span class="main">The Hub</span><span class="sub"></span></div>
+  <div id="tools">
+    <button class="iconBtn" id="btnMap" title="Map (M)"><svg viewBox="0 0 24 24"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg></button>
+    <button class="iconBtn" id="btnHome" title="Back to the Hub (R)"><svg viewBox="0 0 24 24"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/></svg></button>
+    <a class="iconBtn" href="plain.html" title="Plain version"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7M9 8h3"/></svg></a>
+  </div>
+  <div id="keys" class="pill">
+    <span><b class="kbd">W S</b> drive</span><span><b class="kbd">A D</b> turn</span><span><b class="kbd">Q E</b> strafe</span><span><b class="kbd">F</b> read</span><span><b class="kbd">M</b> map</span><span><b class="kbd">1-4</b> districts</span><span><b class="kbd">R</b> hub</span>
+  </div>
+  <div id="toast" class="pill"><h3></h3><p></p></div>
+  <div id="visited" class="pill"><span id="visitedText">0 / 0 lots</span><span class="bar"><i></i></span></div>
+  <canvas id="minimap" title="Open map (M)"></canvas>
+  <button id="prompt" class="pill"><span class="kbd">F</span><span class="code"></span><span class="t"></span></button>
+  <div id="touch"><div id="joy"><i></i></div><button id="touchF">F</button></div>
+</div>
+
+<section id="card" aria-live="polite">
+  <header><div class="addr"></div><h2></h2><button class="close" aria-label="Close">×</button></header>
+  <div class="meta"></div>
+  <div class="scroll"><p class="one"></p><p class="body"></p><ul></ul><div class="links"></div></div>
+  <footer><button id="prevLot">◀ Prev lot</button><button id="nextLot">Next lot ▶</button></footer>
+</section>
+
+<div id="map">
+  <aside>
+    <div class="eyebrow">Island map</div>
+    <h2>Where to?</h2>
+    <p>Pick a lot, or click the map. The robot drops in right there.</p>
+    <div id="mapList"></div>
+  </aside>
+  <div class="stage">
+    <canvas id="bigmap"></canvas>
+    <button class="iconBtn closeMap" id="btnCloseMap" title="Close (M)"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <div class="hint pill"><span>Click to teleport</span><span><b class="kbd">M</b> close</span></div>
+  </div>
+</div>
+
+<div id="intro">
+  <div class="box">
+    <div class="eyebrow" id="introEyebrow"></div>
+    <h1 id="introTitle"></h1>
+    <p class="tag" id="introTag"></p>
+    <p class="blurb" id="introBlurb"></p>
+    <div class="districts" id="introDistricts"></div>
+    <div class="grid">
+      <div><b class="kbd">W S</b> drive forward and back</div>
+      <div><b class="kbd">A D</b> turn</div>
+      <div><b class="kbd">Q E</b> strafe sideways</div>
+      <div><b class="kbd">Shift</b> boost</div>
+      <div><b class="kbd">F</b> read the lot you're parked on</div>
+      <div><b class="kbd">M</b> map and teleport</div>
+      <div><b class="kbd">1-4</b> jump to a district</div>
+      <div><b class="kbd">Space</b> launch a ball</div>
+    </div>
+    <button class="go" id="btnGo" disabled>Loading the island…</button>
+    <a class="alt" href="plain.html">Rather read? Plain version</a>
+  </div>
+</div>
+
+<script type="module" src="main.js"></script>
+</body>
+</html>

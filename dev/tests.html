@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Valley tests</title>
+<style>
+  body { font: 14px/1.5 ui-monospace, Menlo, monospace; margin: 16px; background: #111; color: #ddd; }
+  .pass { color: #7ee07e; } .fail { color: #ff8080; } .warn { color: #ffd166; }
+  h1 { font-size: 18px; }
+</style>
+</head>
+<body>
+<h1 id="sum">Running…</h1>
+<ol id="out"></ol>
+<script type="module">
+  const out = document.getElementById('out');
+  const results = [];
+  const log = (ok, name, detail = '') => { results.push({ ok, name, detail }); const li = document.createElement('li'); li.className = ok === 'warn' ? 'warn' : ok ? 'pass' : 'fail'; li.textContent = `${ok === 'warn' ? 'WARN' : ok ? 'PASS' : 'FAIL'}  ${name}${detail ? ' :: ' + detail : ''}`; out.append(li); };
+  const t = async (name, fn) => { try { const r = await fn(); if (r === 'warn') log('warn', name); else log(true, name, typeof r === 'string' ? r : ''); } catch (e) { log(false, name, e.message); } };
+  const assert = (c, m) => { if (!c) throw new Error(m); };
+
+  const { PROFILE, GAME, HOME, DISTRICTS } = await import('../content.js');
+  const { buildWorld, T, SLOTS } = await import('../js/world.js');
+  const { buildAssets } = await import('../js/assets.js');
+  const { PROP_KEYS, ICON_KEYS } = await import('../js/art-props.js');
+  const { GROUND } = await import('../js/art-nature.js');
+  const { Game } = await import('../js/game.js');
+  const world = buildWorld();
+  const { W, H, solid, tiles } = world;
+  const free = (x, y) => x >= 0 && y >= 0 && x < W && y < H && !solid[y * W + x];
+
+  await t('content: every project has the required fields', () => {
+    for (const d of DISTRICTS) for (const l of d.lots) for (const k of ['id', 'title', 'status', 'oneLiner', 'body']) assert(typeof l[k] === 'string' && l[k].length, `${d.id}/${l.id || '?'} missing ${k}`);
+  });
+  await t('content: project ids are unique', () => {
+    const ids = DISTRICTS.flatMap((d) => d.lots.map((l) => l.id));
+    assert(new Set(ids).size === ids.length, 'duplicate id');
+  });
+  await t('content: every sprite key has a prop and an icon', () => {
+    const miss = DISTRICTS.flatMap((d) => d.lots).filter((l) => !PROP_KEYS.includes(l.sprite) || !ICON_KEYS.includes(l.sprite)).map((l) => l.id);
+    assert(!miss.length, `no art for ${miss.join(', ')}`);
+  });
+  await t('world: every project is placed on the map', () => {
+    const placed = new Set(world.placed.map((p) => p.lot.id));
+    const all = DISTRICTS.flatMap((d) => d.lots.map((l) => l.id));
+    const missing = all.filter((id) => !placed.has(id));
+    assert(!missing.length, `not placed: ${missing.join(', ')}`);
+    return `${placed.size} projects placed`;
+  });
+  await t('world: spawn and pet spawn are on open ground', () => {
+    assert(free(Math.floor(world.spawn.x / T), Math.floor((world.spawn.y - 4) / T)), 'spawn blocked');
+    assert(free(Math.floor(world.petSpawn.x / T), Math.floor((world.petSpawn.y - 4) / T)), 'pet spawn blocked');
+  });
+  // BFS over open tiles from the spawn
+  const seen = new Uint8Array(W * H);
+  const sx = Math.floor(world.spawn.x / T), sy = Math.floor((world.spawn.y - 4) / T);
+  const q = [[sx, sy]]; seen[sy * W + sx] = 1;
+  while (q.length) { const [x, y] = q.shift(); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + dx, ny = y + dy; if (free(nx, ny) && !seen[ny * W + nx]) { seen[ny * W + nx] = 1; q.push([nx, ny]); } } }
+  const reach = (it) => {
+    const x0 = Math.floor(it.x / T), y0 = Math.floor(it.y / T), x1 = Math.floor((it.x + it.w - 1) / T), y1 = Math.floor((it.y + it.h - 1) / T);
+    for (let y = y0 - 1; y <= y1 + 1; y++) for (let x = x0 - 1; x <= x1 + 1; x++) {
+      const inside = x >= x0 && x <= x1 && y >= y0 && y <= y1, corner = (x < x0 || x > x1) && (y < y0 || y > y1);
+      if (!inside && !corner && x >= 0 && y >= 0 && x < W && y < H && seen[y * W + x]) return true;
+    }
+    return false;
+  };
+  await t('world: every interactable can be reached on foot from the spawn', () => {
+    const bad = world.interact.filter((it) => !reach(it)).map((it) => it.id);
+    assert(!bad.length, `unreachable: ${bad.join(', ')}`);
+    return `${world.interact.length} interactables`;
+  });
+  await t('world: Main Street row 19 is clear from end to end', () => {
+    for (let x = 3; x <= 68; x++) assert(free(x, 19), `blocked at ${x},19`);
+  });
+  await t('world: both lanes and South Lane are clear', () => {
+    for (let y = 23; y <= 40; y++) for (const x of [25, 26, 45, 46]) assert(free(x, y), `lane blocked at ${x},${y}`);
+    for (let x = 3; x <= 68; x++) for (const y of [39, 40]) assert(free(x, y), `South Lane blocked at ${x},${y}`);
+  });
+  await t('world: every yard path runs clear from gate to building door', () => {
+    for (const a of world.areas.filter((a) => a.kind === 'district' || a.kind === 'home')) {
+      const gx = Math.floor((a.x0 + a.x1) / 2);
+      for (let y = a.y0 + 7; y <= a.y1 + 1; y++) for (const x of [gx, gx + 1]) assert(free(x, y), `${a.name} path blocked at ${x},${y}`);
+    }
+  });
+  await t('world: water is solid except the pier and dock', () => {
+    for (let i = 0; i < W * H; i++) if (tiles[i] === GROUND.WATER) assert(solid[i], `open water at ${i % W},${(i / W) | 0}`);
+    for (let y = 41; y <= 51; y++) assert(free(35, y) && free(36, y), `pier blocked at y=${y}`);
+  });
+  for (const season of ['spring', 'summer', 'fall', 'winter']) {
+    await t(`art: every object has a sprite in ${season}`, () => {
+      const A = buildAssets(world, season, GAME.look);
+      const bad = [];
+      for (const o of world.objects) {
+        let img = A.A.get(o.key);
+        if (Array.isArray(img)) img = img[0];
+        if (o.key === 'crop' && season === 'winter') continue;
+        if (!(img instanceof HTMLCanvasElement) || !img.width) bad.push(o.key);
+      }
+      assert(!bad.length, `missing: ${[...new Set(bad)].join(', ')}`);
+      assert(A.ground.canvas.width === W * T && A.ground.canvas.height === H * T, 'ground size');
+    });
+  }
+  const canvas = document.createElement('canvas');
+  const game = new Game({ canvas, world, assets: buildAssets(world, 'summer', GAME.look) });
+  await t('engine: pathfinding reaches every project display', () => {
+    const bad = [];
+    for (const it of world.placed) { const goals = game.approachTiles(it); if (!game.pathTo(goals)) bad.push(it.lot.id); }
+    assert(!bad.length, `no path to ${bad.join(', ')}`);
+  });
+  await t('engine: fences and water block movement', () => {
+    game.player.x = world.spawn.x; game.player.y = world.spawn.y;
+    for (let i = 0; i < 60; i++) game.move(0, 4); // walk south into the Home fence
+    assert(game.player.y < 23 * T + 1, `walked through the fence to y=${game.player.y}`);
+    game.player.x = 35 * T + 16; game.player.y = 51 * T + 20;
+    for (let i = 0; i < 60; i++) game.move(0, 4); // walk off the end of the pier
+    assert(game.player.y < 52 * T + 1, `walked onto water y=${game.player.y}`);
+  });
+  await t('engine: keyboard walking moves the player and animates', () => {
+    game.player.x = world.spawn.x; game.player.y = world.spawn.y; game.paused = false;
+    game.keys.add('KeyA'); game.keyOrder = ['KeyA'];
+    const x0 = game.player.x;
+    for (let i = 0; i < 30; i++) game.update(1 / 60);
+    game.keys.clear(); game.keyOrder = [];
+    assert(game.player.x < x0 - 40, `moved only ${x0 - game.player.x}px`);
+    assert(game.player.dir === 'left', `facing ${game.player.dir}`);
+  });
+  await t('engine: the "!" target finds a display when facing it', () => {
+    const it = world.placed[0];
+    game.player.x = it.x + 32; game.player.y = it.y + it.h + 24; game.player.dir = 'up';
+    game.update(1 / 60);
+    assert(game.target && game.target.id === it.id, `target was ${game.target?.id}`);
+  });
+  await t('engine: click-to-walk arrives next to a display', () => {
+    const it = world.placed[3];
+    game.player.x = world.spawn.x; game.player.y = world.spawn.y;
+    let arrived = false;
+    game.walkTo(it, () => { arrived = true; });
+    for (let i = 0; i < 60 * 20 && !arrived; i++) game.update(1 / 60);
+    assert(arrived, 'never arrived');
+    assert(game.distTo(it) < 24, `stopped ${game.distTo(it).toFixed(1)}px away`);
+  });
+  await t('engine: lighting is off at noon and on at night', () => {
+    game.timeMode = 'day'; assert(game.sky().k === 0, 'day has lights');
+    game.timeMode = 'night'; assert(game.sky().k === 1, 'night has no lights');
+    game.render();
+  });
+  await t('classic: page lists every project', async () => {
+    const f = document.createElement('iframe'); f.src = '../classic.html'; f.style.cssText = 'width:900px;height:600px;position:absolute;left:-2000px';
+    document.body.append(f);
+    await new Promise((r) => f.onload = r);
+    await new Promise((r) => setTimeout(r, 800));
+    const n = f.contentDocument.querySelectorAll('.card').length;
+    const total = DISTRICTS.reduce((a, d) => a + d.lots.length, 0);
+    assert(n === total, `${n} cards for ${total} projects`);
+  });
+  await t('content: placeholders still to fill (TODO)', () => {
+    const todos = [];
+    const scan = (v, path) => { if (typeof v === 'string' && v.includes('TODO')) todos.push(path); else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) if (!k.startsWith('_')) scan(x, `${path}.${k}`); };
+    scan({ PROFILE, DISTRICTS }, 'content');
+    if (todos.length) { log('warn', `${todos.length} TODO placeholders remain`, todos.slice(0, 6).join(', ') + (todos.length > 6 ? ', …' : '')); }
+  });
+  const fails = results.filter((r) => r.ok === false).length, passes = results.filter((r) => r.ok === true).length;
+  document.getElementById('sum').textContent = `${passes} passed, ${fails} failed`;
+  document.title = `${fails ? 'FAIL' : 'PASS'} ${passes}/${passes + fails}`;
+  window.__results = results;
+</script>
+</body>
+</html>

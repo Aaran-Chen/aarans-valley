@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aaran · Plain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #1d2244; --ink: #f4eee4; --soft: #c6c1d6; --line: rgba(244, 238, 228, .35); }
+  @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --bg: #fffaf0; --ink: #2a2238; --soft: #5d5470; --line: rgba(42, 34, 56, .2); } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 600 16px/1.6 Nunito, system-ui, sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 24px 16px 60px; }
+  .top { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 24px; }
+  .top a, .top button { border: 2px solid var(--ink); border-radius: 999px; padding: 7px 14px; font: 800 14px Nunito, sans-serif; color: var(--ink); background: none; text-decoration: none; cursor: pointer; }
+  h1 { font: 800 clamp(36px, 7vw, 52px)/1 'Baloo 2', sans-serif; margin: 0 0 8px; }
+  h2 { font: 800 28px 'Baloo 2', sans-serif; margin: 36px 0 4px; padding-top: 22px; border-top: 2px solid var(--line); display: flex; align-items: center; gap: 10px; }
+  h2 i { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+  h3 { font: 800 19px Nunito, sans-serif; margin: 22px 0 0; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .code { font: 800 12px Nunito, sans-serif; color: #fff; border-radius: 6px; padding: 1px 7px; }
+  .meta { font: 700 13px Nunito, sans-serif; color: var(--soft); }
+  .tag { font: 800 18px Nunito, sans-serif; margin: 0 0 8px; }
+  p { margin: 6px 0; }
+  .soft { color: var(--soft); }
+  ul { margin: 6px 0; padding-left: 20px; }
+  a { color: inherit; }
+  @media print { .top { display: none; } body { background: #fff; color: #000; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="top"><a href="index.html">Back to the island</a><button onclick="print()">Print or save as PDF</button></div>
+  <div id="out"></div>
+</main>
+<script type="module">
+  import { PROFILE, DISTRICTS } from './content.js';
+  const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.createElement(tag), props); e.append(...kids); return e; };
+  const out = document.getElementById('out');
+  out.append(
+    el('p', { className: 'meta' }, 'Prefer to drive? ', el('a', { href: 'index.html', textContent: 'Visit the island.' })),
+    el('h1', { textContent: PROFILE.name }),
+    el('p', { className: 'tag', textContent: PROFILE.tagline }),
+    el('p', { textContent: PROFILE.lookingFor }),
+  );
+  const links = el('p');
+  [...PROFILE.links, { label: PROFILE.email, url: 'mailto:' + PROFILE.email }].forEach((l, i) => {
+    if (i) links.append(' · ');
+    links.append(el('a', { href: l.url, textContent: l.label }));
+  });
+  out.append(links, el('h2', { textContent: 'About' }), el('p', { textContent: PROFILE.about }));
+  DISTRICTS.forEach((d) => {
+    const h = el('h2', {}, el('i', { style: `background:${d.color}` }), d.name);
+    out.append(h, el('p', { className: 'soft', textContent: d.summary }));
+    d.lots.forEach((lot, i) => {
+      const code = d.short[0].toUpperCase() + (i + 1);
+      out.append(
+        el('h3', {}, el('span', { className: 'code', style: `background:${d.color}`, textContent: code }), lot.title),
+        el('div', { className: 'meta', textContent: [lot.status, lot.year].filter(Boolean).join(' · ') }),
+        el('p', { textContent: lot.oneLiner }),
+        el('p', { className: 'soft', textContent: lot.body }),
+      );
+      if (lot.points?.length) out.append(el('ul', {}, ...lot.points.map(p => el('li', { textContent: p }))));
+    });
+  });
+</script>
+</body>
+</html>

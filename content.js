@@ -1,0 +1,258 @@
+// Everything the valley and the classic site show lives here. Edit this file, not the renderers.
+// Fields marked TODO are placeholders to replace with real details before publishing.
+
+export const PROFILE = {
+  name: "Aaran",
+  tagline: "I build robots, and the software that runs my day.",
+  about: "High schooler in TKS Innovate 2026-27. My focus this year is humanoid robotics and object manipulation, open-sourced on GitHub by April 11, 2027. Around that I build software tools I actually use every day, and I study for the F=ma physics exam.",
+  lookingFor: "TODO: what you're open to (internships, mentors, collaborators).",
+  links: [
+    { label: "GitHub", url: "https://github.com/TODO" },
+    { label: "LinkedIn", url: "https://www.linkedin.com/in/TODO" },
+    { label: "Medium", url: "https://medium.com/@TODO" },
+  ],
+  email: "TODO@example.com",
+};
+
+// Game-only text and defaults.
+export const GAME = {
+  title: "Aaran's Valley",
+  petName: "Bolt",
+  // Default look for new visitors (indexes into js/palette.js: SKINS, HAIRS, SHIRTS, PANTS; style 0-2).
+  look: { skin: 1, hair: 1, shirt: 0, pants: 0, style: 0 },
+  welcome: [
+    "Beep boop! Welcome to {valley}. I'm {pet}, the robot who keeps an eye on the place.",
+    "Every fenced yard here is a district, and every display inside one is something Aaran has built or is building.",
+    "Walk up to a display and press E (or tap it) to read about it. You'll collect each project you find in your toolbar.",
+    "Press M for the map, Esc for the menu, and the Classic site button (top left) if you'd rather just read a normal page. Have fun!",
+  ],
+  // Shown instead of `welcome` on touch screens.
+  welcomeTouch: [
+    "Beep boop! Welcome to {valley}. I'm {pet}, the robot who keeps an eye on the place.",
+    "Every fenced yard here is a district, and every display inside one is something Aaran has built or is building.",
+    "Tap the ground to walk there. Tap a display (or the A button when you're next to one) to read about it.",
+    "The map and menu buttons are top left, next to the page icon for the classic site. Have fun!",
+  ],
+  tipsTouch: [
+    "Tip: the colour of a district's arch matches its pin on the map.",
+    "Tip: tap anywhere on the ground and you'll walk there on your own.",
+    "Tip: the shipping bin at Aaran's house shows everything you've collected.",
+    "Tip: the quest board in the town square tracks what you've found so far.",
+    "Beep. The valley's clock follows your real time of day. Come back at night!",
+  ],
+  tips: [
+    "Tip: the colour of a district's arch matches its dot on the map.",
+    "Tip: click anywhere on the ground and you'll walk there on your own.",
+    "Tip: the shipping bin at Aaran's house shows everything you've collected.",
+    "Tip: the quest board in the town square tracks what you've found so far.",
+    "Beep. The valley's clock follows your real time of day. Come back at night!",
+    "Tip: hold Shift to walk slowly. You run by default.",
+  ],
+};
+
+// The house and mailbox in the Home yard.
+export const HOME = {
+  house: {
+    title: "Aaran's House",
+    lines: ["This is where I live (in the valley, anyway)."],
+  },
+  mailbox: {
+    title: "Mailbox",
+    lines: ["The mailbox is how to reach me. Pick one:"],
+  },
+};
+
+// Districts. `slot` places the district on the map: "nw", "n", "ne" (north row) or "sw", "se" (south row);
+// the south-middle slot is always Aaran's house. `building` picks the art: workshop, school, code, lab, house.
+// Each project's `sprite` picks its display: humanoid, clancy, vex, unsubscriber, gmailpanel, dictation,
+// dashboard, keyreplay, biopsy, secondbrain, tks, fma, school (anything else shows a crate).
+// Up to 6 projects fit in a side district, 4 in the middle one.
+export const DISTRICTS = [
+  {
+    id: "robotics",
+    name: "Robotics Yard",
+    short: "Robotics",
+    color: "#e0525e",
+    slot: "nw",
+    building: "workshop",
+    summary: "The trunk of the T: arms, drivetrains and the humanoid manipulation project.",
+    lots: [
+      {
+        id: "humanoid",
+        sprite: "humanoid",
+        title: "Humanoid manipulation",
+        status: "In progress",
+        year: "2026-27",
+        oneLiner: "My TKS north star: teach a humanoid-style hand and arm to pick up and handle real objects.",
+        body: "The focus project for my TKS year. The goal is something that adds to what people know about object manipulation, not a tutorial rebuild. Presenting at TKS Demo Day and open-sourcing it on GitHub by April 11, 2027, with feedback from two mentors in the field along the way.",
+        points: ["Target: Demo Day presentation", "Open source on GitHub by April 11, 2027", "Two field mentors for feedback"],
+        links: [],
+      },
+      {
+        id: "clancy",
+        sprite: "clancy",
+        title: "Clancy, the AI robotic arm",
+        status: "Running",
+        year: "2026",
+        oneLiner: "A robotic arm driven by an AI model instead of hand-written motion scripts.",
+        body: "TODO: describe what Clancy can do today, the hardware, and the model that drives it.",
+        points: ["TODO: hardware", "TODO: model", "TODO: what it can pick up"],
+        links: [],
+      },
+      {
+        id: "vex",
+        sprite: "vex",
+        title: "VEX V5 robot",
+        status: "Running",
+        year: "2026",
+        oneLiner: "Competition robot code in C++ on the VEX V5 brain (PROS).",
+        body: "TODO: team number, season game, what the robot does, and what you wrote (autonomous routines, PID, odometry).",
+        points: ["C++ with PROS", "TODO: autonomous", "TODO: results"],
+        links: [],
+      },
+    ],
+  },
+  {
+    id: "campus",
+    name: "Campus",
+    short: "Campus",
+    color: "#e0a526",
+    slot: "n",
+    building: "school",
+    summary: "School and the programs I'm part of.",
+    lots: [
+      {
+        id: "tks",
+        sprite: "tks",
+        title: "TKS Innovate",
+        status: "Now",
+        year: "2026-27",
+        oneLiner: "The Knowledge Society's 10-month program for building hard things early.",
+        body: "Explore, Build, Apply, Impact, Breakthrough. My year is built around the humanoid manipulation project, plus three side projects shared publicly and a weekly build-in-public update.",
+        points: ["Focus: humanoid manipulation", "3 side projects by April 11, 2027", "Weekly progress posts"],
+        links: [],
+      },
+      {
+        id: "fma",
+        sprite: "fma",
+        title: "F=ma prep",
+        status: "In progress",
+        year: "2026-27",
+        oneLiner: "A 19-week plan for the F=ma physics exam.",
+        body: "Weekly problem sets with tracked scores, starting September 28, 2026.",
+        points: ["19-week plan", "Scores tracked per week"],
+        links: [],
+      },
+      {
+        id: "school",
+        sprite: "school",
+        title: "School",
+        status: "Now",
+        year: "2026-27",
+        oneLiner: "TODO: school, grade, and the classes that matter.",
+        body: "TODO: school name, courses (including the De Anza CNC class), GPA if you want it shown, awards.",
+        points: ["TODO"],
+        links: [],
+      },
+    ],
+  },
+  {
+    id: "software",
+    name: "Software Row",
+    short: "Software",
+    color: "#4a7fd6",
+    slot: "ne",
+    building: "code",
+    summary: "Tools I built because I wanted them on my own machine every day.",
+    lots: [
+      {
+        id: "unsubscriber",
+        sprite: "unsubscriber",
+        title: "Gmail Unsubscriber",
+        status: "Running",
+        year: "2026",
+        oneLiner: "A browser extension that finds every mailing list in Gmail and unsubscribes in one click.",
+        body: "A Manifest V3 extension that talks to the Gmail API with an OAuth client you own, so no third-party server sees your mail. It groups senders, picks the best unsubscribe route (one-click POST, mailto, or a web page it fills in itself) and also spots mail that has gone stale by reading the dates inside it.",
+        points: ["One-click, email and web-page unsubscribe routes", "Stale-mail detection from dates in the message text", "Runs as popup, side panel or Vivaldi web panel"],
+        links: [],
+      },
+      {
+        id: "gmailpanel",
+        sprite: "gmailpanel",
+        title: "Gmail Panel",
+        status: "Running",
+        year: "2026",
+        oneLiner: "A narrow, always-there inbox: list, read, archive, trash, undo.",
+        body: "A tiny loopback server that starts at login plus a web-app UI, so my inbox sits beside everything else without the rest of Gmail. Row and bulk archive, delete and mark-read, with Undo.",
+        points: ["Python server on localhost", "Installed as a web app", "Bulk actions with Undo"],
+        links: [],
+      },
+      {
+        id: "handy",
+        sprite: "dictation",
+        title: "Context-aware dictation",
+        status: "Running",
+        year: "2026",
+        oneLiner: "A fork of the Handy dictation app that adapts tone to the app you're typing into.",
+        body: "Built in Rust and Tauri on my PC. A local model running in Ollama rewrites the transcript to fit where it's going, so a Slack message and an essay don't come out the same.",
+        points: ["Rust + Tauri", "Local LLM via Ollama", "No cloud round trip"],
+        links: [],
+      },
+      {
+        id: "dashboard",
+        sprite: "dashboard",
+        title: "School dashboard",
+        status: "Running",
+        year: "2026",
+        oneLiner: "Canvas, class sites and Todoist pulled into one Obsidian dashboard that refreshes itself.",
+        body: "Scrapes Canvas and teacher sites, turns homework into prioritized Todoist tasks, draws a color-coded calendar, and flags grade anomalies against each class's real letter scale.",
+        points: ["Canvas + class-site snapshots", "Todoist sync with priorities", "Per-course grade cutoffs"],
+        links: [],
+      },
+      {
+        id: "keyreplay",
+        sprite: "keyreplay",
+        title: "Key Replay Macro",
+        status: "Done",
+        year: "2026",
+        oneLiner: "Extracts key presses from a screen recording and replays them with 0.01 ms timing.",
+        body: "A Swift hotkey daemon on a real-time thread, plus a Python script that reads an on-screen key overlay out of a video and turns it into a timeline.",
+        points: ["Swift, real-time thread", "Timeline extracted from video with Python", "End-to-end tests"],
+        links: [],
+      },
+    ],
+  },
+  {
+    id: "lab",
+    name: "ML Lab",
+    short: "ML Lab",
+    color: "#3fa37a",
+    slot: "sw",
+    building: "lab",
+    summary: "Models, training runs and the GPU rig that runs them.",
+    lots: [
+      {
+        id: "biopsy",
+        sprite: "biopsy",
+        title: "Breast biopsy classifier",
+        status: "Running",
+        year: "2026",
+        oneLiner: "An image classifier for breast biopsy slides, with an eval set and a web app.",
+        body: "Prepared and hashed the image data, trained the model, exported it and wrapped it in a small web app with sample slides. TODO: accuracy numbers from the eval folder.",
+        points: ["Data prep and de-duplication in Python", "Exported model served in a web app", "TODO: eval results"],
+        links: [],
+      },
+      {
+        id: "secondbrain",
+        sprite: "secondbrain",
+        title: "Local AI second brain",
+        status: "Running",
+        year: "2026",
+        oneLiner: "A 27B model on my own RTX 5090, chatting over my notes.",
+        body: "A local chat server on the PC rig with my Obsidian vault as context. No subscription, no data leaving the house.",
+        points: ["RTX 5090, 32 GB VRAM", "Local model, local notes", "Reachable from my other machines"],
+        links: [],
+      },
+    ],
+  },
+];

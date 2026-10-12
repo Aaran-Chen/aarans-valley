@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aaran's Valley</title>
+<meta name="description" content="A small pixel-art valley you can walk around. Every display in it is one of Aaran's projects. Prefer to read? There's a classic site too.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jersey+15&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="sr-only" href="classic.html">Skip the game and read the classic website</a>
+<canvas id="game" tabindex="0" aria-label="Aaran's Valley: a pixel-art world. Use the arrow keys or click to walk; press E to inspect things."></canvas>
+
+<div id="hud" hidden>
+  <nav class="hud-left" aria-label="Game menu">
+    <button class="wbtn" id="bMenu" title="Menu (Esc)"><i class="ico" data-i="bag"></i><span>Menu</span></button>
+    <button class="wbtn" id="bMap" title="Map (M)"><i class="ico" data-i="map"></i><span>Map</span></button>
+    <a class="wbtn" id="bClassic" href="classic.html" title="The same content as a normal web page"><i class="ico" data-i="classic"></i><span>Classic site</span></a>
+    <button class="wbtn" id="bSound" title="Sound on/off"><i class="ico" data-i="soundOn"></i></button>
+  </nav>
+  <div id="clockBox">
+    <div id="clock" class="frame" aria-live="off">
+      <div class="date"></div>
+      <div class="row"><i class="sun"></i><span class="time"></span></div>
+      <div class="season"></div>
+    </div>
+    <div id="found" class="frame" title="Projects found"><i class="ico" data-i="star"></i><span></span></div>
+  </div>
+  <div id="banner" class="frame" aria-live="polite"><h2></h2><p></p></div>
+  <div id="hint" aria-live="polite"></div>
+  <div id="toolbar" class="frame" aria-label="Collected projects"></div>
+  <div id="toasts" aria-live="polite"></div>
+  <div id="touch"><button id="tAct" aria-label="Inspect">A</button></div>
+</div>
+<div id="tooltip" class="panel"></div>
+
+<section id="dialogue" hidden role="dialog" aria-live="polite">
+  <div class="dbox frame"><div class="dspeaker"></div><div class="dhead"></div><div class="dtext"></div><div class="dchoices"></div><div class="dnext" aria-hidden="true">&#9660;</div></div>
+  <div class="dport frame"><canvas class="pix" width="64" height="64"></canvas><div class="dname"></div></div>
+</section>
+
+<div id="menu" hidden role="dialog" aria-modal="true" aria-label="Menu">
+  <div class="mwrap">
+    <div class="tabs" role="tablist"></div>
+    <div class="mbody frame">
+      <button class="mclose wbtn" id="mClose" aria-label="Close menu"><i class="ico" data-i="close"></i></button>
+      <div class="mcontent"></div>
+    </div>
+  </div>
+</div>
+
+<div id="title" hidden>
+  <div class="tbox">
+    <canvas class="logo" aria-label="Aaran's Valley"></canvas>
+    <p class="tag" id="tTag"></p>
+    <div class="tbtns">
+      <button class="wbtn" id="tPlay">Play</button>
+      <button class="wbtn" id="tNew" hidden>New game</button>
+      <a class="wbtn" href="classic.html">Classic website</a>
+    </div>
+    <div class="keys frame">
+      <span class="kb"><b class="key">WASD</b>walk</span><span class="kb"><b class="key">E</b>inspect</span><span class="kb"><b class="key">M</b>map</span>
+      <span class="kb"><b class="key">Shift</b>walk slowly</span><span class="kb"><b class="key">Esc</b>menu</span><span class="kb"><b class="key">Click</b>walk there</span>
+      <span class="tp">Tap to walk</span><span class="tp">Tap things to inspect</span>
+    </div>
+  </div>
+</div>
+
+<div id="loading"><div>Growing the valley&hellip;<div class="bar"><i></i></div></div></div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

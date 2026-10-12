@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sprite sheet</title>
+<style>
+  body { margin: 0; background: #6a8f4e; font: 12px system-ui; color: #fff; }
+  .grid { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; align-items: flex-end; }
+  figure { margin: 0; text-align: center; }
+  canvas { image-rendering: pixelated; display: block; }
+  h2 { margin: 10px; font: 700 14px system-ui; }
+  #err { color: #ffd0d0; padding: 10px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<div id="err"></div>
+<div id="root"></div>
+<script type="module">
+  const err = document.getElementById('err');
+  window.addEventListener('error', (e) => { err.textContent += e.message + '\n'; });
+  window.addEventListener('unhandledrejection', (e) => { err.textContent += (e.reason && e.reason.stack || e.reason) + '\n'; });
+  const params = new URLSearchParams(location.search);
+  const season = params.get('season') || 'fall';
+  const Z = +(params.get('z') || 3);
+  const nat = await import('../js/art-nature.js');
+  const bld = await import('../js/art-build.js');
+  const props = await import('../js/art-props.js');
+  const chars = await import('../js/art-chars.js');
+  const ui = await import('../js/art-ui.js');
+  const root = document.getElementById('root');
+  const section = (title) => { const h = document.createElement('h2'); h.textContent = title; root.append(h); const g = document.createElement('div'); g.className = 'grid'; root.append(g); return g; };
+  const show = (g, label, pix, z = Z) => {
+    if (!pix) return;
+    const c = pix.canvas ? pix.canvas() : pix;
+    c.style.width = c.width * z + 'px'; c.style.height = c.height * z + 'px';
+    const f = document.createElement('figure'); f.append(c);
+    const cap = document.createElement('figcaption'); cap.textContent = label; f.append(cap); g.append(f);
+  };
+  const t0 = performance.now();
+  let g = section('Characters');
+  const fr = chars.playerFrames({ skin: 1, hair: 1, shirt: 0, pants: 0, style: 0 });
+  for (const d of ['down', 'up', 'left', 'right']) fr[d].forEach((f, i) => show(g, d + i, f));
+  show(g, 'hold', fr.hold);
+  const fr2 = chars.playerFrames({ skin: 3, hair: 0, shirt: 1, pants: 1, style: 1 });
+  show(g, 'alt', fr2.down[0]); show(g, 'alt-left', fr2.left[1]);
+  const fr3 = chars.playerFrames({ skin: 0, hair: 3, shirt: 2, pants: 0, style: 2 });
+  show(g, 'spiky', fr3.down[0]); show(g, 'spiky-up', fr3.up[0]);
+  const pet = chars.petFrames();
+  for (const d of ['down', 'up', 'left']) pet[d].forEach((f, i) => show(g, 'pet ' + d + i, f));
+  chars.chickenFrames().left.forEach((f, i) => show(g, 'hen' + i, f));
+  chars.chickenFrames(true).left.forEach((f, i) => show(g, 'brown' + i, f));
+
+  g = section('Nature (' + season + ')');
+  for (let v = 0; v < 3; v++) show(g, 'oak' + v, nat.oakTree(season, v), 2);
+  for (let v = 0; v < 2; v++) show(g, 'pine' + v, nat.pineTree(season, v), 2);
+  for (let v = 0; v < 2; v++) show(g, 'bush' + v, nat.bush(season, v));
+  for (let f = 0; f < 3; f++) show(g, 'tuft' + f, nat.grassTuft(season, f));
+  show(g, 'planter', nat.planter(season)); show(g, 'rock', nat.rock(0)); show(g, 'rock1', nat.rock(1)); show(g, 'stump', nat.stump());
+  show(g, 'cattail', nat.cattail()); show(g, 'shell', nat.shell(0)); show(g, 'drift', nat.driftwood());
+
+  g = section('Buildings');
+  for (const k of ['house', 'workshop', 'school', 'code', 'lab']) { const b = bld.building(k, season); show(g, k, b.pix, 2); show(g, k + ' lit', b.lit, 1); }
+
+  g = section('Furniture');
+  for (let m = 0; m < 16; m++) show(g, 'fence' + m, bld.fence(m), 2);
+  show(g, 'arch', bld.arch('Robotics Yard', '#e0525e'), 2);
+  show(g, 'lamp', bld.lamp(false), 2); show(g, 'lamp on', bld.lamp(true), 2);
+  show(g, 'bench', bld.bench(), 2); show(g, 'signpost', bld.signpost(), 2);
+  show(g, 'welcome', bld.welcomeSign(['Welcome to', "Aaran's Valley"]), 2);
+  show(g, 'board', bld.noticeBoard(), 2);
+  for (let f = 0; f < 4; f++) show(g, 'fountain' + f, bld.fountain(f), 2);
+  show(g, 'barrel', bld.barrel(), 2); show(g, 'crate', bld.crate(), 2);
+  show(g, 'mail', bld.mailbox(false), 2); show(g, 'mail up', bld.mailbox(true), 2);
+  show(g, 'bin', bld.shippingBin(), 2);
+  for (let f = 0; f < 3; f++) show(g, 'fire' + f, bld.campfire(f), 2);
+  show(g, 'soon', bld.constructionSign(), 2);
+  show(g, 'crop', bld.crop(season, 0), 2);
+
+  g = section('Props');
+  for (const k of [...props.PROP_KEYS, 'generic']) show(g, k, props.prop(k, 0), 3);
+  g = section('Icons');
+  for (const k of props.ICON_KEYS) show(g, k, props.icon(k), 3);
+
+  g = section('UI');
+  show(g, 'frame', ui.frameWood(), 6); show(g, 'panel', ui.framePanel(), 6); show(g, 'slot', ui.frameSlot(), 6); show(g, 'slot on', ui.frameSlot(true), 6);
+  show(g, 'btn', ui.frameButton(), 6); show(g, 'btn hover', ui.frameButton(true), 6);
+  show(g, 'logo', ui.logo("AARAN'S", 'VALLEY'), 2);
+  show(g, 'cursor', ui.cursor('arrow'), 4); show(g, 'hand', ui.cursor('hand'), 4);
+  for (const k of ['menu', 'map', 'journal', 'classic', 'soundOn', 'soundOff', 'close', 'star', 'check', 'gear', 'person', 'bag']) show(g, k, ui.uiIcon(k), 4);
+  show(g, 'bubble', ui.bubble(), 4);
+  const h = document.createElement('p'); h.textContent = `generated in ${(performance.now() - t0).toFixed(0)} ms`; root.prepend(h);
+  window.__done = true;
+</script>
+</body>
+</html>
