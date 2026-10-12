@@ -6,7 +6,7 @@ import { hash } from './art-core.js';
 
 const T = 32;
 const DIRS = { down: [0, 1], up: [0, -1], left: [-1, 0], right: [1, 0] };
-const RUN = 152, WALK = 84;
+const RUN = 230, WALK = 120; // art px per second (about 7 and 4 tiles a second)
 const KEYMAP = {
   ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
 };
@@ -356,8 +356,8 @@ export class Game {
     return tx < 0 || ty < 0 || tx >= W || ty >= H ? -1 : tiles[ty * W + tx];
   }
   areaAt(x, y) {
-    const tx = x / T, ty = (y - 4) / T;
-    for (const a of this.world.areas) if (tx > a.x0 + (a.kind === 'district' || a.kind === 'home' || a.kind === 'park' ? 1 : 0) && tx < a.x1 + 1 - (a.kind === 'square' || a.kind === 'beach' ? 0 : 1) && ty > a.y0 + (a.kind === 'square' || a.kind === 'beach' ? 0 : 1) && ty < a.y1 + 1 - (a.kind === 'square' || a.kind === 'beach' ? 0 : 1)) return a;
+    const tx = Math.floor(x / T), ty = Math.floor((y - 4) / T);
+    for (const a of this.world.areas) if (tx >= a.x0 && tx <= a.x1 && ty >= a.y0 && ty <= a.y1) return a;
     return null;
   }
 
@@ -510,6 +510,7 @@ export class Game {
   }
 
   render() {
+    if (!this.buf.width || !this.buf.height) return; // window has no size yet (hidden or minimised)
     const g = this.bctx, A = this.assets.A;
     const vw = this.buf.width, vh = this.buf.height;
     const cx = Math.round(this.cam.x), cy = Math.round(this.cam.y);

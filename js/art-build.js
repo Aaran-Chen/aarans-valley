@@ -370,22 +370,23 @@ export function fence(mask) {
   return p;
 }
 
-export function arch(name, color) {
+export function arch(name, color, W = 128) {
   const text = name.toUpperCase();
-  const W = 128, H = 96, p = new Pix(W, H);
+  const H = 96, p = new Pix(W, H), mid = W / 2;
   const A = [0, shade(C(color), -0.5), shade(C(color), -0.25), C(color), shade(C(color), 0.25), shade(C(color), 0.5)];
-  for (const px of [11, 107]) {
+  for (const px of [11, W - 21]) {
     for (let y = 16; y < 94; y++) for (let x = px; x < px + 10; x++) p.set(x, y, WOOD[x < px + 2 ? 4 : x > px + 7 ? 2 : 3]);
     p.bevel(px - 2, 88, 14, 6, STONE, 3);
     p.bevel(px - 1, 12, 12, 5, A, 3);
   }
   const tw = Math.max(textWidth(text) + 18, 70);
-  const bx = Math.round(64 - tw / 2);
+  const bx = Math.round(mid - tw / 2);
   p.bevel(bx, 18, tw, 20, WOOD_LIGHT, 3);
   p.rect(bx + 2, 20, tw - 4, 16, WOOD_LIGHT[3]);
   p.rect(bx, 18, tw, 2, A[4]); p.rect(bx, 36, tw, 2, A[2]);
-  signText(p, text, 64, 24, WOOD[1], WOOD_LIGHT[4]);
-  // little roof cap
+  signText(p, text, mid, 24, WOOD[1], WOOD_LIGHT[4]);
+  // crossbeam between the posts, then the roof cap
+  if (W > 128) { p.bevel(14, 22, bx - 14, 7, WOOD, 3); p.bevel(bx + tw, 22, W - 14 - bx - tw, 7, WOOD, 3); }
   for (let x = bx - 6; x < bx + tw + 6; x++) for (let y = 8; y < 16; y++) {
     const k = y === 8 ? 5 : y === 15 ? 1 : ((x + (y & 1) * 3) % 6 === 0 ? 2 : 3);
     p.set(x, y, A[k]);
@@ -454,14 +455,16 @@ export function smallSign() {
   return p;
 }
 
-export function welcomeSign(lines) {
+export function welcomeSign(lines, color = null) {
   const tw = Math.max(...lines.map((l) => textWidth(l.toUpperCase())));
   const W = Math.max(64, tw + 28), H = 72, p = new Pix(W, H);
   for (const px of [10, W - 17]) for (let y = 30; y < 70; y++) for (let x = px; x < px + 7; x++) p.set(x, y, WOOD[x < px + 2 ? 4 : x > px + 4 ? 2 : 3]);
   p.bevel(3, 8, W - 6, 30, WOOD_LIGHT, 3);
   p.rect(5, 10, W - 10, 26, WOOD_LIGHT[3]);
   for (let y = 12; y < 36; y += 6) p.rect(5, y, W - 10, 1, WOOD_LIGHT[2]);
-  lines.forEach((l, i) => signText(p, l.toUpperCase(), W / 2, 12 + i * 11, WOOD[1], WOOD_LIGHT[4]));
+  if (color) { const c = C(color); p.rect(3, 8, W - 6, 4, c); p.rect(3, 8, W - 6, 1, shade(c, 0.35)); p.rect(3, 11, W - 6, 1, shade(c, -0.35)); }
+  const top = color && lines.length === 1 ? 18 : 12;
+  lines.forEach((l, i) => signText(p, l.toUpperCase(), W / 2, top + i * 11, WOOD[1], WOOD_LIGHT[4]));
   p.outline((c) => shade(c, -0.6));
   return p;
 }

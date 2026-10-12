@@ -69,22 +69,33 @@
     assert(!bad.length, `unreachable: ${bad.join(', ')}`);
     return `${world.interact.length} interactables`;
   });
-  await t('world: Main Street row 19 is clear from end to end', () => {
-    for (let x = 3; x <= 68; x++) assert(free(x, 19), `blocked at ${x},19`);
-  });
-  await t('world: both lanes and South Lane are clear', () => {
-    for (let y = 23; y <= 40; y++) for (const x of [25, 26, 45, 46]) assert(free(x, y), `lane blocked at ${x},${y}`);
-    for (let x = 3; x <= 68; x++) for (const y of [39, 40]) assert(free(x, y), `South Lane blocked at ${x},${y}`);
-  });
-  await t('world: every yard path runs clear from gate to building door', () => {
-    for (const a of world.areas.filter((a) => a.kind === 'district' || a.kind === 'home')) {
-      const gx = Math.floor((a.x0 + a.x1) / 2);
-      for (let y = a.y0 + 7; y <= a.y1 + 1; y++) for (const x of [gx, gx + 1]) assert(free(x, y), `${a.name} path blocked at ${x},${y}`);
+  await t('world: every street and Beach Road tile outside the square is walkable', () => {
+    const bad = [];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      if (tiles[y * W + x] !== GROUND.COBBLE) continue;
+      if (x >= 26 && x <= 37 && y >= 18 && y <= 29) continue; // the square has its fountain and benches
+      if (!free(x, y)) bad.push(`${x},${y}`);
     }
+    assert(!bad.length, `blocked street tiles: ${bad.slice(0, 8).join(' ')}`);
+  });
+  await t('navigation: every project is a short walk from the spawn (BFS steps)', () => {
+    const dist = new Int32Array(W * H).fill(-1);
+    const q2 = [[sx, sy]]; dist[sy * W + sx] = 0;
+    while (q2.length) { const [x, y] = q2.shift(); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + dx, ny = y + dy; if (free(nx, ny) && dist[ny * W + nx] < 0) { dist[ny * W + nx] = dist[y * W + x] + 1; q2.push([nx, ny]); } } }
+    const steps = world.placed.map((it) => {
+      let best = 1e9;
+      const x0 = Math.floor(it.x / T), y0 = Math.floor(it.y / T);
+      for (let y = y0 - 1; y <= y0 + 2; y++) for (let x = x0 - 1; x <= x0 + 2; x++) if (x >= 0 && y >= 0 && dist[y * W + x] >= 0) best = Math.min(best, dist[y * W + x]);
+      return [it.lot.id, best];
+    });
+    const worst = steps.reduce((a, b) => (b[1] > a[1] ? b : a));
+    const avg = steps.reduce((a, b) => a + b[1], 0) / steps.length;
+    assert(worst[1] <= 26, `${worst[0]} is ${worst[1]} steps away`);
+    return `average ${avg.toFixed(1)} steps, farthest ${worst[0]} at ${worst[1]}`;
   });
   await t('world: water is solid except the pier and dock', () => {
     for (let i = 0; i < W * H; i++) if (tiles[i] === GROUND.WATER) assert(solid[i], `open water at ${i % W},${(i / W) | 0}`);
-    for (let y = 41; y <= 51; y++) assert(free(35, y) && free(36, y), `pier blocked at y=${y}`);
+    for (let y = 43; y <= 52; y++) assert(free(31, y), `pier blocked at y=${y}`);
   });
   for (const season of ['spring', 'summer', 'fall', 'winter']) {
     await t(`art: every object has a sprite in ${season}`, () => {
@@ -107,13 +118,13 @@
     for (const it of world.placed) { const goals = game.approachTiles(it); if (!game.pathTo(goals)) bad.push(it.lot.id); }
     assert(!bad.length, `no path to ${bad.join(', ')}`);
   });
-  await t('engine: fences and water block movement', () => {
+  await t('engine: the fountain and the sea block movement', () => {
     game.player.x = world.spawn.x; game.player.y = world.spawn.y;
-    for (let i = 0; i < 60; i++) game.move(0, 4); // walk south into the Home fence
-    assert(game.player.y < 23 * T + 1, `walked through the fence to y=${game.player.y}`);
-    game.player.x = 35 * T + 16; game.player.y = 51 * T + 20;
+    for (let i = 0; i < 60; i++) game.move(0, -4); // walk north into the fountain
+    assert(game.player.y > 24 * T, `walked through the fountain to y=${game.player.y}`);
+    game.player.x = 31 * T + 16; game.player.y = 52 * T + 20;
     for (let i = 0; i < 60; i++) game.move(0, 4); // walk off the end of the pier
-    assert(game.player.y < 52 * T + 1, `walked onto water y=${game.player.y}`);
+    assert(game.player.y < 53 * T + 1, `walked onto water y=${game.player.y}`);
   });
   await t('engine: keyboard walking moves the player and animates', () => {
     game.player.x = world.spawn.x; game.player.y = world.spawn.y; game.paused = false;

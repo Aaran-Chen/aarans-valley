@@ -16,7 +16,8 @@ export function buildAssets(world, season, look) {
 
   for (const o of world.objects) {
     if (A.has(o.key)) continue;
-    if (o.kind === 'arch') A.set(o.key, c(B.arch(o.text, o.color)));
+    if (o.kind === 'arch') A.set(o.key, c(B.arch(o.text, o.color, o.w)));
+    else if (o.kind === 'board' && o.text) A.set(o.key, c(B.welcomeSign([o.text], o.color)));
     else if (o.kind === 'building') {
       const b = B.building(o.building, season);
       A.set(o.key, c(b.pix));

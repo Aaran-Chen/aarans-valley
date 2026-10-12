@@ -46,7 +46,7 @@ const fill = (s) => s.replaceAll('{valley}', GAME.title).replaceAll('{pet}', GAM
 const world = buildWorld();
 const LOTS = world.placed;
 const TOTAL = LOTS.length;
-const districtsHere = world.areas.filter((a) => a.kind === 'district');
+const districtsHere = world.areas.filter((a) => a.kind === 'district' && a.id !== 's2');
 let assets, game, titleUp = true, snapshot = null;
 
 const iconFor = (lot) => assets.A.get(`icon:${lot.sprite}`) || assets.A.get('icon:unknown');
@@ -81,7 +81,7 @@ function pages(text, max = 190) {
 // ---------------------------------------------------------------------------
 const QUESTS = [
   { id: 'hello', title: `Say hi to ${GAME.petName}`, desc: 'The robot in the town square knows the place.', check: () => !!S.flags.hello },
-  { id: 'districts', title: 'Visit every district', desc: 'Walk in through each arch.', progress: () => [districtsHere.filter((a) => S.visited.includes(a.district.id)).length, districtsHere.length] },
+  { id: 'districts', title: 'Visit every district', desc: 'Walk down each street from the square.', progress: () => [districtsHere.filter((a) => S.visited.includes(a.district.id)).length, districtsHere.length] },
   { id: 'projects', title: 'Find every project', desc: 'Inspect each display. They land in your toolbar.', progress: () => [S.found.filter((id) => LOTS.some((l) => l.lot.id === id)).length, TOTAL] },
   { id: 'house', title: "Knock on Aaran's door", desc: 'The house is south of the square, down either lane.', check: () => !!S.flags.house },
   { id: 'mail', title: 'Check the mailbox', desc: "It's by Aaran's front door.", check: () => !!S.flags.mail },
@@ -201,9 +201,9 @@ function mailboxTalk() {
 }
 
 function directions() {
-  const where = { nw: 'Up Main Street and left', n: 'Straight up from the square', ne: 'Up Main Street and right', sw: 'Down the West Lane', se: 'Down the East Lane', s: 'Down either lane' };
-  const lines = world.areas.filter((a) => a.slot).map((a) => `${where[a.slot]}: ${a.name}`);
-  return [lines.slice(0, 3).join('\n'), lines.slice(3).join('\n') + '\nKeep going south for the beach and the pier.'];
+  const where = { n: 'North', e: 'East', s: 'South', w: 'West' };
+  const lines = Object.entries(world.bySlot).map(([slot, d]) => `${where[slot]}: ${d.name}`);
+  return [`Every street starts at this square.\n${lines.join('\n')}`, "Aaran's house and the beach are at the bottom of the south street. Press 1 to 4 to jump to a district."];
 }
 
 let tipIndex = 0;
@@ -374,7 +374,8 @@ function tabMap(c) {
     cv.style.width = `${w}px`; cv.style.height = `${h}px`;
     const toCss = (wx, wy) => [(wx / (world.W * T)) * w, (wy / (world.H * T)) * h];
     for (const a of world.areas) {
-      const [x, y] = toCss(((a.x0 + a.x1 + 1) / 2) * T, (a.kind === 'beach' ? a.y0 + 1.6 : a.kind === 'square' ? a.y0 + 0.3 : a.y0 + 0.9) * T);
+      if (a.id === 's2' || a.kind === 'road') continue;
+      const [x, y] = a.label ? toCss(a.label[0] * T, a.label[1] * T) : toCss(((a.x0 + a.x1 + 1) / 2) * T, (a.kind === 'beach' ? a.y0 + 1.6 : a.y0 + 0.9) * T);
       stage.append(el('div', { className: 'mlabel', textContent: a.name, style: `left:${x}px;top:${y}px` }));
     }
     for (const it of LOTS) {
@@ -557,6 +558,8 @@ const hooks = {
     else if (a.kind === 'park') sub = 'A quiet spot. More builds coming.';
     else if (a.kind === 'square') sub = 'The middle of everything.';
     else if (a.kind === 'beach') sub = 'Follow the pier out to sea.';
+    else if (a.kind === 'road') sub = "Aaran's house to the west, the lab to the east.";
+    else if (a.kind === 'orchard') sub = 'Just trees. Nice ones, though.';
     UI.banner(a.name, sub, a.color);
   },
 };
@@ -653,6 +656,12 @@ function onKey(e) {
       e.preventDefault(); if (game.target) interact(game.target); break;
     case 'Escape': case 'KeyI': case 'Tab': e.preventDefault(); openMenu('collection'); break;
     case 'KeyM': e.preventDefault(); openMenu('map'); break;
+    case 'Digit1': case 'Digit2': case 'Digit3': case 'Digit4': case 'Digit5': {
+      const d = DISTRICTS.filter((x) => x._gate)[+e.code.slice(5) - 1];
+      if (d) { sfx.warp(); game.warp(d._gate.x, d._gate.y, d._gate.dir); }
+      break;
+    }
+    case 'KeyH': { const h = world.interact.find((i) => i.kind === 'house'); if (h) { sfx.warp(); game.warpTo(h); } break; }
     case 'KeyJ': case 'KeyQ': e.preventDefault(); openMenu('quests'); break;
     case 'Equal': case 'NumpadAdd': S.opts.zoom = Math.min(1.8, (S.opts.zoom || 1) + 0.15); game.setZoom(S.opts.zoom); save(); break;
     case 'Minus': case 'NumpadSubtract': S.opts.zoom = Math.max(0.6, (S.opts.zoom || 1) - 0.15); game.setZoom(S.opts.zoom); save(); break;
