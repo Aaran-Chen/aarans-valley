@@ -62,18 +62,18 @@ export const HOME = {
   },
 };
 
-// Districts. `slot` places the district on the map: "nw", "n", "ne" (north row) or "sw", "se" (south row);
-// the south-middle slot is always Aaran's house. `building` picks the art: workshop, school, code, lab, house.
+// Districts. `slot` picks the street: "n", "e", "w" or "s" from the town square (Beach Road and the house are
+// always at the bottom of the south street). `building` picks the art: workshop, school, code, lab, house.
 // Each project's `sprite` picks its display: humanoid, clancy, vex, unsubscriber, gmailpanel, dictation,
 // dashboard, keyreplay, biopsy, secondbrain, tks, fma, school (anything else shows a crate).
-// Up to 6 projects fit in a side district, 4 in the middle one.
+// Up to 8 projects fit along a street; they alternate left and right of it.
 export const DISTRICTS = [
   {
     id: "robotics",
     name: "Robotics Yard",
     short: "Robotics",
     color: "#e0525e",
-    slot: "nw",
+    slot: "w",
     building: "workshop",
     summary: "The trunk of the T: arms, drivetrains and the humanoid manipulation project.",
     lots: [
@@ -161,7 +161,7 @@ export const DISTRICTS = [
     name: "Software Row",
     short: "Software",
     color: "#4a7fd6",
-    slot: "ne",
+    slot: "e",
     building: "code",
     summary: "Tools I built because I wanted them on my own machine every day.",
     lots: [
@@ -227,7 +227,7 @@ export const DISTRICTS = [
     name: "ML Lab",
     short: "ML Lab",
     color: "#3fa37a",
-    slot: "sw",
+    slot: "s",
     building: "lab",
     summary: "Models, training runs and the GPU rig that runs them.",
     lots: [

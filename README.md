@@ -2,18 +2,19 @@
 
 A Stardew-style pixel-art portfolio you can walk around, plus a classic web page with the same content.
 
-- `index.html`: the game. Walk with WASD/arrows (or click/tap to walk), E to inspect, M for the map, Esc for the menu.
+- `index.html`: the game. Walk with WASD/arrows (or click/tap to walk), E to inspect, M for the map, Esc for the menu, 1-4 to jump to a district, H to go home.
 - `classic.html`: the classic website (light/dark, printable). `plain.html` redirects to it.
 - `content.js`: all the text. Edit this, not the renderers. Search for `TODO` before publishing.
 
-Every pixel is drawn by code at 32 px per tile (Stardew uses 16), so there is no image folder to maintain.
+Every pixel is drawn by code. The world is laid out at 32 logical px per tile and every sprite and the ground are stored at 2x (`RES` in `js/art-core.js`), so each tile is 64x64 stored pixels: 16x the pixels of a Stardew tile. There is no image folder to maintain.
 
 ## Layout
 
-A strict grid: a town square on Main Street, three district yards north of it and three south
-(Aaran's house is always south-middle; an unused slot becomes Pond Park), South Lane, then the beach and pier.
-Each district: building at the back, a straight path from its door to its arch, and the project displays
-lined up either side of that path. Pick a district's slot and building in `content.js`.
+A plus sign: the town square in the middle and four straight streets out of it, one per district
+(north, east, west, south; set `slot` in `content.js` to `n`, `e`, `w` or `s`). Each street is lined with that
+district's displays on both sides and ends at its building, so every project is a straight walk from the square.
+The south street runs down to Beach Road (Aaran's house, the lab building), then the beach and pier. Pond Park and
+an orchard fill the top corners.
 
 ## Files
 
