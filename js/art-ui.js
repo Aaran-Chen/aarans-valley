@@ -11,7 +11,7 @@ const K = {
 
 // 24 x 24, 8 px slices: dark outline, bevelled wood band, inner lip, parchment.
 export function frameWood() {
-  const p = new Pix(24, 24);
+  const p = new Pix(24, 24, 1);
   for (let y = 0; y < 24; y++) for (let x = 0; x < 24; x++) {
     const d = Math.min(x, y, 23 - x, 23 - y);
     const corner = Math.min(x, 23 - x) + Math.min(y, 23 - y);
@@ -31,7 +31,7 @@ export function frameWood() {
 }
 // Lighter inset panel, 12 x 12 with 4 px slices.
 export function framePanel() {
-  const p = new Pix(12, 12);
+  const p = new Pix(12, 12, 1);
   for (let y = 0; y < 12; y++) for (let x = 0; x < 12; x++) {
     const d = Math.min(x, y, 11 - x, 11 - y);
     if (Math.min(x, 11 - x) + Math.min(y, 11 - y) < 1) continue;
@@ -41,7 +41,7 @@ export function framePanel() {
 }
 // Toolbar / collection slot, 16 x 16 with 5 px slices.
 export function frameSlot(active = false) {
-  const p = new Pix(16, 16);
+  const p = new Pix(16, 16, 1);
   for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
     const d = Math.min(x, y, 15 - x, 15 - y);
     if (Math.min(x, 15 - x) + Math.min(y, 15 - y) < 1) continue;
@@ -55,7 +55,7 @@ export function frameSlot(active = false) {
 }
 // Wooden button, 16 x 16 with 5 px slices.
 export function frameButton(hover = false) {
-  const p = new Pix(16, 16);
+  const p = new Pix(16, 16, 1);
   const base = hover ? K.woodLight : K.woodMid, top = hover ? C('#fbd68c') : K.woodHi;
   for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
     const d = Math.min(x, y, 15 - x, 15 - y);
@@ -72,7 +72,7 @@ export function frameButton(hover = false) {
 export function scaledURL(pix, s) {
   const src = pix.canvas();
   const c = document.createElement('canvas');
-  c.width = pix.w * s; c.height = pix.h * s;
+  c.width = pix.W * s; c.height = pix.H * s;
   const g = c.getContext('2d');
   g.imageSmoothingEnabled = false;
   g.drawImage(src, 0, 0, c.width, c.height);
@@ -86,7 +86,7 @@ export function logo(line1, line2) {
   const s1 = 5, s2 = 9;
   const w1 = textWidth(line1, s1), w2 = textWidth(line2, s2);
   const W = Math.max(w1, w2) + 24, H = 7 * s1 + 7 * s2 + 34;
-  const fill = new Pix(W, H);
+  const fill = new Pix(W, H, 1);
   const grad = ['#fff7a0', '#fbe36a', '#d9e85e', '#9fd452', '#6ab844', '#469a3a', '#2f7a32'].map((c) => C(c));
   const gradB = ['#fff7d6', '#ffe9a8', '#ffd27a', '#f7b04e', '#e98a36', '#cf6a2a', '#a8501f'].map((c) => C(c));
   const put = (text, scale, y, G) => {
@@ -110,7 +110,7 @@ export function logo(line1, line2) {
   const ink = C('#3b1d0e');
   fill.outline(ink); fill.outline(ink); fill.outline(C('#5a2e12'));
   // drop shadow
-  const out = new Pix(W, H);
+  const out = new Pix(W, H, 1);
   const sh = C('#2a1208', 150);
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (fill.opaque(x, y)) out.set(x + 2, y + 4, sh);
   out.blit(fill, 0, 0);
@@ -121,7 +121,7 @@ export function logo(line1, line2) {
 // Cursor (16 x 16 art) and UI icons (16 x 16)
 // ---------------------------------------------------------------------------
 export function cursor(kind = 'arrow') {
-  const p = new Pix(16, 16);
+  const p = new Pix(16, 16, 1);
   if (kind === 'arrow') {
     const rows = ['#', '##', '#.#', '#..#', '#...#', '#....#', '#.....#', '#......#', '#.......#', '#....####', '#..#..#', '#.# #..#', '##   #..#', '#     ##'];
     rows.forEach((r, y) => [...r].forEach((ch, x) => {
@@ -160,7 +160,7 @@ const UI = {
   bag(p) { p.bevel(3, 5, 10, 9, [0, C('#6b3314'), C('#8f4a1c'), C('#b4642a'), C('#e59a4a'), C('#f7c070')], 3); p.rect(5, 2, 6, 1, C('#6b3314')); p.rect(5, 2, 1, 4, C('#6b3314')); p.rect(10, 2, 1, 4, C('#6b3314')); p.rect(6, 8, 4, 2, GOLD[4]); },
 };
 export function uiIcon(key) {
-  const p = new Pix(16, 16);
+  const p = new Pix(16, 16, 1);
   (UI[key] || UI.star)(p);
   return p.outline((c) => shade(c, -0.55));
 }

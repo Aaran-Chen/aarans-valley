@@ -126,17 +126,35 @@ export function lightIndex(l, n = 6) {
 // ---------------------------------------------------------------------------
 // Painter
 // ---------------------------------------------------------------------------
+// Every sprite is drawn in logical pixels (32 per tile) but stored at RES times
+// the resolution: shapes, curves, shading and outlines are computed per stored
+// pixel, so the valley has RES^2 = 4 times the pixels of the logical grid.
+export const RES = 2;
+
 export class Pix {
-  constructor(w, h) { this.w = w; this.h = h; this.d = new Uint32Array(w * h); }
-  in(x, y) { return x >= 0 && y >= 0 && x < this.w && y < this.h; }
-  get(x, y) { x = Math.floor(x); y = Math.floor(y); return this.in(x, y) ? this.d[y * this.w + x] : 0; }
-  set(x, y, c) {
-    x = Math.floor(x); y = Math.floor(y);
-    if (c && this.in(x, y)) this.d[y * this.w + x] = c;
+  constructor(w, h, k = RES) {
+    this.w = w; this.h = h; this.k = k;
+    this.W = w * k; this.H = h * k;
+    this.d = new Uint32Array(this.W * this.H);
   }
-  clear(x, y) { x = Math.floor(x); y = Math.floor(y); if (this.in(x, y)) this.d[y * this.w + x] = 0; }
+  in(x, y) { return x >= 0 && y >= 0 && x < this.w && y < this.h; }
+  hin(X, Y) { return X >= 0 && Y >= 0 && X < this.W && Y < this.H; }
+  hget(X, Y) { return this.hin(X, Y) ? this.d[Y * this.W + X] : 0; }
+  hset(X, Y, c) { if (c && this.hin(X, Y)) this.d[Y * this.W + X] = c; }
+  // logical access samples the middle of the block
+  get(x, y) { const k = this.k; return this.hget(Math.floor(x * k) + (k >> 1), Math.floor(y * k) + (k >> 1)); }
+  // a logical pixel is a k x k block
+  set(x, y, c) {
+    if (!c) return;
+    const k = this.k, X = Math.floor(x) * k, Y = Math.floor(y) * k;
+    for (let j = 0; j < k; j++) for (let i = 0; i < k; i++) this.hset(X + i, Y + j, c);
+  }
+  clear(x, y) {
+    const k = this.k, X = Math.floor(x) * k, Y = Math.floor(y) * k;
+    for (let j = 0; j < k; j++) for (let i = 0; i < k; i++) if (this.hin(X + i, Y + j)) this.d[(Y + j) * this.W + X + i] = 0;
+  }
   opaque(x, y) { return (this.get(x, y) >>> 24) > 0; }
-  // c may be a colour or fn(x, y, i, j) returning a colour (0 = skip)
+  // c may be a colour or fn(x, y, i, j) returning a colour (0 = skip); evaluated per logical pixel
   rect(x, y, w, h, c) {
     x = Math.round(x); y = Math.round(y);
     for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
@@ -144,12 +162,20 @@ export class Pix {
     }
     return this;
   }
-  // c may be a colour or fn(x, y, nx, ny) with nx, ny in -1..1 across the ellipse
+  // Fine texture fill: fn(X, Y, u, v) per stored pixel, with X, Y in stored pixels and u, v in 0..1 across the rect.
+  tex(x, y, w, h, fn) {
+    const k = this.k, X0 = Math.round(x * k), Y0 = Math.round(y * k), W = Math.round(w * k), H = Math.round(h * k);
+    for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) this.hset(X0 + i, Y0 + j, fn(i, j, (i + 0.5) / W, (j + 0.5) / H));
+    return this;
+  }
+  // c may be a colour or fn(x, y, nx, ny, X, Y): x, y logical, nx, ny in -1..1 across the ellipse, X, Y stored pixels
   ellipse(cx, cy, rx, ry, c) {
-    const x0 = Math.floor(cx - rx - 1), x1 = Math.ceil(cx + rx + 1), y0 = Math.floor(cy - ry - 1), y1 = Math.ceil(cy + ry + 1);
-    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
-      const nx = (x + 0.5 - cx) / rx, ny = (y + 0.5 - cy) / ry;
-      if (nx * nx + ny * ny <= 1) this.set(x, y, typeof c === 'function' ? c(x, y, nx, ny) : c);
+    const k = this.k;
+    const X0 = Math.floor((cx - rx - 1) * k), X1 = Math.ceil((cx + rx + 1) * k), Y0 = Math.floor((cy - ry - 1) * k), Y1 = Math.ceil((cy + ry + 1) * k);
+    for (let Y = Y0; Y <= Y1; Y++) for (let X = X0; X <= X1; X++) {
+      const lx = (X + 0.5) / k, ly = (Y + 0.5) / k;
+      const nx = (lx - cx) / rx, ny = (ly - cy) / ry;
+      if (nx * nx + ny * ny <= 1) this.hset(X, Y, typeof c === 'function' ? c(Math.floor(lx), Math.floor(ly), nx, ny, X, Y) : c);
     }
     return this;
   }
@@ -157,30 +183,35 @@ export class Pix {
   blob(cx, cy, rx, ry, R, bias = 0) {
     return this.ellipse(cx, cy, rx, ry, (x, y, nx, ny) => R[lightIndex(sphereLight(nx, ny) + bias, R.length)]);
   }
+  // A line one logical pixel thick, stepped in stored pixels so diagonals stay smooth.
   line(x0, y0, x1, y1, c) {
-    x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
-    const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+    const k = this.k;
+    let X0 = Math.round(x0) * k, Y0 = Math.round(y0) * k;
+    const X1 = Math.round(x1) * k, Y1 = Math.round(y1) * k;
+    const dx = Math.abs(X1 - X0), dy = -Math.abs(Y1 - Y0), sx = X0 < X1 ? 1 : -1, sy = Y0 < Y1 ? 1 : -1;
     let err = dx + dy;
     for (;;) {
-      this.set(x0, y0, typeof c === 'function' ? c(x0, y0) : c);
-      if (x0 === x1 && y0 === y1) break;
+      const col = typeof c === 'function' ? c(Math.floor(X0 / k), Math.floor(Y0 / k)) : c;
+      for (let j = 0; j < k; j++) for (let i = 0; i < k; i++) this.hset(X0 + i, Y0 + j, col);
+      if (X0 === X1 && Y0 === Y1) break;
       const e2 = 2 * err;
-      if (e2 >= dy) { err += dy; x0 += sx; }
-      if (e2 <= dx) { err += dx; y0 += sy; }
+      if (e2 >= dy) { err += dy; X0 += sx; }
+      if (e2 <= dx) { err += dx; Y0 += sy; }
     }
     return this;
   }
   // Thick segment shaded like a cylinder, lit from the upper left. R: ramp.
   seg(x0, y0, x1, y1, width, R, capped = true) {
+    const k = this.k;
     const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy) || 1;
     const ux = dx / len, uy = dy / len;
     let lx = -uy, ly = ux;
     if (lx * -0.6 + ly * -0.8 < 0) { lx = -lx; ly = -ly; }
     const r = width / 2;
-    const minX = Math.floor(Math.min(x0, x1) - r - 1), maxX = Math.ceil(Math.max(x0, x1) + r + 1);
-    const minY = Math.floor(Math.min(y0, y1) - r - 1), maxY = Math.ceil(Math.max(y0, y1) + r + 1);
-    for (let y = minY; y <= maxY; y++) for (let x = minX; x <= maxX; x++) {
-      const px = x + 0.5, py = y + 0.5;
+    const minX = Math.floor((Math.min(x0, x1) - r - 1) * k), maxX = Math.ceil((Math.max(x0, x1) + r + 1) * k);
+    const minY = Math.floor((Math.min(y0, y1) - r - 1) * k), maxY = Math.ceil((Math.max(y0, y1) + r + 1) * k);
+    for (let Y = minY; Y <= maxY; Y++) for (let X = minX; X <= maxX; X++) {
+      const px = (X + 0.5) / k, py = (Y + 0.5) / k;
       let t = (px - x0) * ux + (py - y0) * uy;
       if ((t < 0 || t > len) && !capped) continue;
       t = Math.max(0, Math.min(len, t));
@@ -189,47 +220,54 @@ export class Pix {
       if (ox * ox + oy * oy > r * r) continue;
       const s = (ox * lx + oy * ly) / r;
       const idx = s > 0.5 ? 4 : s > 0.05 ? 3 : s > -0.5 ? 2 : 1;
-      this.set(x, y, R[Math.min(idx, R.length - 1)]);
+      this.hset(X, Y, R[Math.min(idx, R.length - 1)]);
     }
     return this;
   }
-  // Filled polygon (scanline, pixel centres). c may be a colour or fn(x, y).
+  // Filled polygon (scanline over stored pixels). c may be a colour or fn(x, y) with logical x, y.
   poly(pts, c) {
+    const k = this.k;
+    const P = pts.map(([x, y]) => [x * k, y * k]);
     let minY = Infinity, maxY = -Infinity;
-    for (const [, y] of pts) { minY = Math.min(minY, y); maxY = Math.max(maxY, y); }
-    for (let y = Math.floor(minY); y <= Math.ceil(maxY); y++) {
-      const py = y + 0.5, xs = [];
-      for (let i = 0; i < pts.length; i++) {
-        const [ax, ay] = pts[i], [bx, by] = pts[(i + 1) % pts.length];
+    for (const [, y] of P) { minY = Math.min(minY, y); maxY = Math.max(maxY, y); }
+    for (let Y = Math.floor(minY); Y <= Math.ceil(maxY); Y++) {
+      const py = Y + 0.5, xs = [];
+      for (let i = 0; i < P.length; i++) {
+        const [ax, ay] = P[i], [bx, by] = P[(i + 1) % P.length];
         if ((ay <= py && by > py) || (by <= py && ay > py)) xs.push(ax + (py - ay) / (by - ay) * (bx - ax));
       }
       xs.sort((a, b) => a - b);
-      for (let k = 0; k + 1 < xs.length; k += 2) {
-        for (let x = Math.ceil(xs[k] - 0.5); x <= Math.floor(xs[k + 1] - 0.5); x++) this.set(x, y, typeof c === 'function' ? c(x, y) : c);
+      for (let q = 0; q + 1 < xs.length; q += 2) {
+        for (let X = Math.ceil(xs[q] - 0.5); X <= Math.floor(xs[q + 1] - 0.5); X++) this.hset(X, Y, typeof c === 'function' ? c(Math.floor(X / k), Math.floor(Y / k)) : c);
       }
     }
     return this;
   }
-  // Rectangle with a one-pixel bevel: lit top/left, shaded bottom/right. R ramp, base index.
+  // Rectangle with a bevel: lit top/left, shaded bottom/right (one stored pixel wide). R ramp, base index.
   bevel(x, y, w, h, R, base = 3) {
     const hi = R[Math.min(base + 1, R.length - 1)], lo = R[Math.max(base - 1, 1)];
-    this.rect(x, y, w, h, R[base]);
-    this.rect(x, y, w, 1, hi); this.rect(x, y, 1, h, hi);
-    this.rect(x, y + h - 1, w, 1, lo); this.rect(x + w - 1, y + 1, 1, h - 1, lo);
-    return this;
-  }
-  blit(src, dx, dy, flip = false) {
-    for (let y = 0; y < src.h; y++) for (let x = 0; x < src.w; x++) {
-      const c = src.d[y * src.w + (flip ? src.w - 1 - x : x)];
-      if (c >>> 24) this.set(dx + x, dy + y, c);
+    const k = this.k, X0 = Math.round(x) * k, Y0 = Math.round(y) * k, W = Math.round(w) * k, H = Math.round(h) * k;
+    for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+      let c = R[base];
+      if (j === H - 1 || i === W - 1) c = lo;
+      else if (j < Math.max(1, k - 1) || i < Math.max(1, k - 1)) c = hi;
+      this.hset(X0 + i, Y0 + j, c);
     }
     return this;
   }
-  flipped() { const o = new Pix(this.w, this.h); o.blit(this, 0, 0, true); return o; }
-  clone() { const o = new Pix(this.w, this.h); o.d.set(this.d); return o; }
-  // One-pixel outline outside the opaque area. color: fixed colour, fn(neighbour), or null for hue-shifted auto.
+  blit(src, dx, dy, flip = false) {
+    const k = this.k, X0 = Math.round(dx * k), Y0 = Math.round(dy * k);
+    for (let Y = 0; Y < src.H; Y++) for (let X = 0; X < src.W; X++) {
+      const c = src.d[Y * src.W + (flip ? src.W - 1 - X : X)];
+      if (c >>> 24) this.hset(X0 + X, Y0 + Y, c);
+    }
+    return this;
+  }
+  flipped() { const o = new Pix(this.w, this.h, this.k); o.blit(this, 0, 0, true); return o; }
+  clone() { const o = new Pix(this.w, this.h, this.k); o.d.set(this.d); return o; }
+  // One stored-pixel outline outside the opaque area. color: fixed colour, fn(neighbour), or null for hue-shifted auto.
   outline(color = null, minAlpha = 160) {
-    const { w, h, d } = this, out = d.slice();
+    const { W: w, H: h, d } = this, out = d.slice();
     const solid = (i) => (d[i] >>> 24) >= minAlpha;
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
       const i = y * w + x;
@@ -244,9 +282,9 @@ export class Pix {
     this.d = out;
     return this;
   }
-  // Recolour the opaque pixels that touch transparency (an inner rim).
+  // Recolour the opaque stored pixels that touch transparency (an inner rim).
   rim(fn) {
-    const { w, h, d } = this, out = d.slice();
+    const { W: w, H: h, d } = this, out = d.slice();
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
       const i = y * w + x;
       if (!(d[i] >>> 24)) continue;
@@ -259,9 +297,9 @@ export class Pix {
   }
   canvas() {
     const c = document.createElement('canvas');
-    c.width = this.w; c.height = this.h;
+    c.width = this.W; c.height = this.H;
     const g = c.getContext('2d');
-    const img = g.createImageData(this.w, this.h);
+    const img = g.createImageData(this.W, this.H);
     new Uint32Array(img.data.buffer).set(this.d);
     g.putImageData(img, 0, 0);
     return c;

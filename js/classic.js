@@ -55,8 +55,8 @@ function render() {
     if (filter !== 'all' && filter !== d.id) continue;
     const cards = el('div', { className: 'cards' });
     d.lots.forEach((lot, i) => {
-      const icon = el('canvas', { width: 32, height: 32, ariaHidden: 'true' });
       const src = iconOf(lot.sprite);
+      const icon = el('canvas', { width: src ? src.width : 32, height: src ? src.height : 32, ariaHidden: 'true' });
       if (src) icon.getContext('2d').drawImage(src, 0, 0);
       const chips = el('div', { className: 'chips' },
         el('span', { className: 'chip s', textContent: lot.status, style: `background:${statusColor[lot.status] || '#6e5a4a'}` }),
@@ -82,7 +82,7 @@ try {
   const cache = new Map();
   iconOf = (k) => { if (!cache.has(k)) cache.set(k, P.icon(k).canvas()); return cache.get(k); };
   render();
-  const mail = $('#mailIcon').getContext('2d'); mail.drawImage(iconOf('mailbox'), 0, 0);
+  const mi = iconOf('mailbox'), mc = $('#mailIcon'); mc.width = mi.width; mc.height = mi.height; mc.getContext('2d').drawImage(mi, 0, 0);
   const d = new Date(), md = (d.getMonth() + 1) * 100 + d.getDate();
   const season = md >= 1221 || md < 320 ? 'winter' : md < 621 ? 'spring' : md < 922 ? 'summer' : 'fall';
   const look = GAME.look;
@@ -94,15 +94,19 @@ try {
     document.head.append(Object.assign(document.createElement('link'), { rel: 'icon', type: 'image/png', href: big.toDataURL() }));
   } catch { /* optional */ }
   const brand = $('#brandIcon').getContext('2d');
-  brand.drawImage(fr.down[0].canvas(), 0, 0, 32, 32, 0, 2, 32, 32);
-  const g = $('#scene').getContext('2d');
+  $('#brandIcon').width = 64; $('#brandIcon').height = 64;
+  brand.drawImage(fr.down[0].canvas(), 0, 0, 64, 64, 0, 4, 64, 64);
+  const sc = $('#scene'); sc.width = 384; sc.height = 288;
+  const g = sc.getContext('2d');
   g.imageSmoothingEnabled = false;
+  g.scale(2, 2);
+  const put = (cv, x, y) => g.drawImage(cv, x, y, cv.width / 2, cv.height / 2);
   const grass = N.grassTuft(season, 1).canvas();
-  g.drawImage(N.oakTree(season, 0).canvas(), -24, 4);
-  g.drawImage(P.prop('humanoid').canvas(), 118, 70);
-  g.drawImage(fr.down[0].canvas(), 72, 70);
-  g.drawImage(pet.down[0].canvas(), 100, 102);
-  for (const x of [8, 44, 160, 176]) g.drawImage(grass, x, 112);
+  put(N.oakTree(season, 0).canvas(), -24, 4);
+  put(P.prop('humanoid').canvas(), 118, 70);
+  put(fr.down[0].canvas(), 72, 70);
+  put(pet.down[0].canvas(), 100, 102);
+  for (const x of [8, 44, 160, 176]) put(grass, x, 112);
 } catch (err) {
   console.warn('Pixel art skipped:', err);
 }

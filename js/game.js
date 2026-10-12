@@ -2,7 +2,7 @@
 // click-to-walk pathfinding, y-sorted drawing, a real-time day/night cycle
 // with lamps and lit windows, seasonal particles, and the little NPCs.
 import { GROUND } from './art-nature.js';
-import { hash } from './art-core.js';
+import { hash, RES } from './art-core.js';
 
 const T = 32;
 const DIRS = { down: [0, 1], up: [0, -1], left: [-1, 0], right: [1, 0] };
@@ -63,15 +63,20 @@ export class Game {
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
     const vw = window.innerWidth, vh = window.innerHeight;
     const tileCss = Math.max(34, Math.min(64, Math.min(vw, vh) / 11)) * this.zoom;
-    const s = Math.max(1, Math.round((tileCss * dpr) / T));
-    this.s = s; this.dpr = dpr;
+    // a = device pixels per stored art pixel (whole number), s = device pixels per logical pixel
+    const a = Math.max(1, Math.round((tileCss * dpr) / (T * RES)));
+    const s = a * RES;
+    this.s = s; this.a = a; this.dpr = dpr;
     this.canvas.width = Math.round(vw * dpr);
     this.canvas.height = Math.round(vh * dpr);
-    this.buf.width = Math.ceil(this.canvas.width / s);
-    this.buf.height = Math.ceil(this.canvas.height / s);
+    this.buf.width = Math.ceil(this.canvas.width / a);
+    this.buf.height = Math.ceil(this.canvas.height / a);
     this.light.width = this.buf.width; this.light.height = this.buf.height;
     this.cssPx = s / dpr;
-    this.hooks.onScale?.(s, dpr);
+    // the interface keeps its size when the world is zoomed
+    const baseCss = Math.max(34, Math.min(64, Math.min(vw, vh) / 11));
+    const uiS = Math.max(1, Math.round((baseCss * dpr) / (T * RES))) * RES;
+    this.hooks.onScale?.(uiS, dpr);
   }
   setZoom(z) { this.zoom = Math.max(0.6, Math.min(1.8, z)); this.resize(); this.snapCamera(); }
 
@@ -212,9 +217,15 @@ export class Game {
     this.fadeDir = 1; this.fadeThen = go;
   }
   warpTo(it) {
-    const goals = this.approachTiles(it).filter(([x, y]) => y > Math.floor((it.y + it.h - 1) / T));
-    const [tx, ty] = (goals[0] || this.approachTiles(it)[0] || [Math.floor(it.x / T), Math.floor(it.y / T) + 2]);
-    this.warp(tx * T + 16, ty * T + 24, 'up');
+    // land on the street side of the thing (cobbles first), facing it
+    const all = this.approachTiles(it);
+    const { W, tiles } = this.world;
+    const onStreet = all.filter(([x, y]) => tiles[y * W + x] === GROUND.COBBLE);
+    const below = all.filter(([, y]) => y > Math.floor((it.y + it.h - 1) / T));
+    const [tx, ty] = onStreet[Math.floor(onStreet.length / 2)] || below[0] || all[0] || [Math.floor(it.x / T), Math.floor(it.y / T) + 2];
+    const cx = it.x + it.w / 2, cy = it.y + it.h / 2, dx = cx - (tx * T + 16), dy = cy - (ty * T + 16);
+    const dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
+    this.warp(tx * T + 16, ty * T + 24, dir);
   }
 
   // -------------------------------------------------------------------------
@@ -420,7 +431,7 @@ export class Game {
   }
 
   updateCamera(dt, snap = false) {
-    const vw = this.buf.width, vh = this.buf.height, mw = this.world.W * T, mh = this.world.H * T;
+    const vw = this.buf.width / RES, vh = this.buf.height / RES, mw = this.world.W * T, mh = this.world.H * T;
     let tx = this.player.x - vw / 2, ty = this.player.y - 36 - vh / 2;
     tx = mw <= vw ? (mw - vw) / 2 : Math.max(0, Math.min(mw - vw, tx));
     ty = mh <= vh ? (mh - vh) / 2 : Math.max(0, Math.min(mh - vh, ty));
@@ -498,12 +509,13 @@ export class Game {
     const key = rx * 100 + ry;
     if (this.shadowCache.has(key)) return this.shadowCache.get(key);
     const c = document.createElement('canvas');
-    c.width = rx * 2 + 2; c.height = ry * 2 + 2;
+    c.width = (rx * 2 + 2) * RES; c.height = (ry * 2 + 2) * RES;
     const g = c.getContext('2d');
-    g.fillStyle = 'rgba(28,18,48,0.26)';
     for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) {
-      const nx = (x + 0.5 - rx - 1) / rx, ny = (y + 0.5 - ry - 1) / ry;
-      if (nx * nx + ny * ny <= 1) g.fillRect(x, y, 1, 1);
+      const nx = ((x + 0.5) / RES - rx - 1) / rx, ny = ((y + 0.5) / RES - ry - 1) / ry, d = nx * nx + ny * ny;
+      if (d > 1) continue;
+      g.fillStyle = d > 0.7 ? 'rgba(28,18,48,0.17)' : 'rgba(28,18,48,0.26)';
+      g.fillRect(x, y, 1, 1);
     }
     this.shadowCache.set(key, c);
     return c;
@@ -512,14 +524,15 @@ export class Game {
   render() {
     if (!this.buf.width || !this.buf.height) return; // window has no size yet (hidden or minimised)
     const g = this.bctx, A = this.assets.A;
-    const vw = this.buf.width, vh = this.buf.height;
-    const cx = Math.round(this.cam.x), cy = Math.round(this.cam.y);
+    const vw = this.buf.width / RES, vh = this.buf.height / RES;
+    const cx = Math.round(this.cam.x * RES) / RES, cy = Math.round(this.cam.y * RES) / RES;
+    g.setTransform(RES, 0, 0, RES, 0, 0);
     g.imageSmoothingEnabled = false;
     g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
     g.fillStyle = '#132f4d'; g.fillRect(0, 0, vw, vh);
     const gr = this.assets.ground;
     const sx = Math.max(0, cx), sy = Math.max(0, cy);
-    g.drawImage(gr.canvas, sx, sy, Math.min(vw, gr.PW - sx), Math.min(vh, gr.PH - sy), sx - cx, sy - cy, Math.min(vw, gr.PW - sx), Math.min(vh, gr.PH - sy));
+    gr.draw(g, sx, sy, Math.min(vw, gr.PW - sx), Math.min(vh, gr.PH - sy), sx - cx, sy - cy);
     this.drawWater(g, cx, cy, vw, vh);
 
     // collect drawables in view
@@ -529,7 +542,7 @@ export class Game {
       let img = A.get(o.key === 'mailbox' && this.mailFlag ? 'mailbox:up' : o.key);
       if (Array.isArray(img)) img = img[Math.floor(this.t * (o.key === 'fountain' ? 6 : o.key === 'campfire' ? 8 : 3)) % img.length];
       if (!img) continue;
-      const w = img.width, h = img.height;
+      const w = img.width / RES, h = img.height / RES;
       const x = o.kind === 'prop' || o.kind === 'fence' || o.kind === 'building' || o.kind === 'arch' || o.kind === 'tree' ? o.x : o.x;
       if (!inView(x, o.y, w, h)) continue;
       list.push({ y: o.sortY, img, x, yy: o.y, o, w, h });
@@ -558,11 +571,10 @@ export class Game {
     // shadows first
     for (const d of list) {
       const s = d.o?.shadow;
-      if (s) { const img = this.shadowSprite(s[2], s[3]); g.drawImage(img, Math.round(s[0] - s[2] - 1 - cx), Math.round(s[1] - s[3] - 1 - cy)); }
+      if (s) this.img(g, this.shadowSprite(s[2], s[3]), Math.round(s[0] - s[2] - 1 - cx), Math.round(s[1] - s[3] - 1 - cy));
     }
     for (const who of [[p.x, p.y, 10, 4], [pt.x, pt.y - 1, 9, 3], ...this.chickens.map((c) => [c.x, c.y - 1, 8, 3])]) {
-      const img = this.shadowSprite(who[2], who[3]);
-      g.drawImage(img, Math.round(who[0] - who[2] - 1 - cx), Math.round(who[1] - who[3] - 1 - cy));
+      this.img(g, this.shadowSprite(who[2], who[3]), Math.round(who[0] - who[2] - 1 - cx), Math.round(who[1] - who[3] - 1 - cy));
     }
 
     // sprites, fading tree tops the player walks behind
@@ -571,7 +583,7 @@ export class Game {
       let alpha = 1;
       if (d.o?.fade && p.y < d.o.sortY && pr.x < d.x + d.w - 18 && pr.x + pr.w > d.x + 18 && pr.y < d.yy + d.h - 24 && pr.y + pr.h > d.yy + 8) alpha = 0.42;
       g.globalAlpha = alpha;
-      g.drawImage(d.img, d.x - cx, d.yy - cy);
+      this.img(g, d.img, d.x - cx, d.yy - cy);
     }
     g.globalAlpha = 1;
 
@@ -585,16 +597,18 @@ export class Game {
       const b = A.get('bubble');
       const top = tgt.obj ? tgt.obj.y : tgt.y - (tgt.kind === 'pet' || tgt.kind === 'chicken' ? 14 : 30);
       const bob = Math.round(Math.sin(this.t * 5) * 2);
-      g.drawImage(b, Math.round(tgt.x + tgt.w / 2 - 8 - cx), Math.round(top - 22 + bob - cy));
+      this.img(g, b, Math.round(tgt.x + tgt.w / 2 - 8 - cx), Math.round(top - 22 + bob - cy));
     }
-    if (p.hold > 0 && p.holdIcon) g.drawImage(p.holdIcon, Math.round(p.x - 16 - cx), Math.round(p.y - 98 - cy));
+    if (p.hold > 0 && p.holdIcon) this.img(g, p.holdIcon, Math.round(p.x - 16 - cx), Math.round(p.y - 98 - cy));
 
     if (this.fade > 0) { g.globalAlpha = this.fade; g.fillStyle = '#000'; g.fillRect(0, 0, vw, vh); g.globalAlpha = 1; }
 
     const ctx = this.ctx;
     ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(this.buf, 0, 0, this.buf.width * this.s, this.buf.height * this.s);
+    ctx.drawImage(this.buf, 0, 0, this.buf.width * this.a, this.buf.height * this.a);
   }
+  // Sprites are stored at RES x; drawing them at their logical size maps one stored pixel to one buffer pixel.
+  img(g, im, x, y) { g.drawImage(im, x, y, im.width / RES, im.height / RES); }
 
   drawWater(g, cx, cy, vw, vh) {
     const { W, H, tiles } = this.world;
@@ -613,7 +627,7 @@ export class Game {
         if (ground !== GROUND.WATER) continue;
         g.globalAlpha = Math.sin(ph * Math.PI) * 0.85;
         g.fillStyle = k ? '#c6e9f6' : '#7cbde0';
-        g.fillRect(x - cx, y - cy, len, 1);
+        g.fillRect(x - cx, y - cy, len, 0.5);
       }
     }
     g.globalAlpha = 1;
@@ -622,12 +636,12 @@ export class Game {
   drawParticles(g, cx, cy, glowPass) {
     const leafC = ['#e6842b', '#c6591e', '#f6b648', '#983a18'], petalC = ['#f0a6c4', '#ffd6e6', '#da76a4', '#ffffff'];
     for (const q of this.particles) {
-      const x = Math.round(q.x - cx), y = Math.round(q.y - cy), a = Math.max(0, Math.min(1, q.life / (q.max * 0.3)));
+      const x = Math.round((q.x - cx) * RES) / RES, y = Math.round((q.y - cy) * RES) / RES, a = Math.max(0, Math.min(1, q.life / (q.max * 0.3)));
       if (glowPass !== (q.kind === 'firefly')) continue;
       g.globalAlpha = a;
-      if (q.kind === 'leaf') { g.fillStyle = leafC[q.c]; g.fillRect(x, y, 2, 2); g.fillRect(x + ((Math.sin(this.t * 3 + q.seed) > 0) ? 2 : -1), y + 1, 1, 1); }
-      else if (q.kind === 'petal') { g.fillStyle = petalC[q.c]; g.fillRect(x, y, 2, 1); g.fillRect(x + 1, y + 1, 1, 1); }
-      else if (q.kind === 'snow') { g.fillStyle = '#ffffff'; g.fillRect(x, y, q.c > 1 ? 2 : 1, q.c > 1 ? 2 : 1); }
+      if (q.kind === 'leaf') { const flip = Math.sin(this.t * 3 + q.seed) > 0; g.fillStyle = leafC[q.c]; g.fillRect(x, y, flip ? 2 : 1.5, 1.5); g.fillStyle = '#7a3a12'; g.fillRect(x + (flip ? 2 : -0.5), y + 1, 0.5, 0.5); }
+      else if (q.kind === 'petal') { g.fillStyle = petalC[q.c]; g.fillRect(x, y, 1.5, 1); g.fillRect(x + 0.5, y + 1, 1, 0.5); }
+      else if (q.kind === 'snow') { g.fillStyle = '#ffffff'; const z = q.c > 1 ? 1.5 : q.c > 0 ? 1 : 0.5; g.fillRect(x, y, z, z); }
       else if (q.kind === 'smoke') {
         const age = 1 - q.life / q.max, r = 2 + age * 5;
         g.globalAlpha = 0.5 * (1 - age); g.fillStyle = '#d8d4dc';
@@ -654,6 +668,7 @@ export class Game {
     const { c, k } = this.sky();
     if (c[0] > 250 && c[1] > 250 && c[2] > 250) return;
     const l = this.lctx;
+    l.setTransform(RES, 0, 0, RES, 0, 0);
     l.globalCompositeOperation = 'source-over';
     l.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`;
     l.fillRect(0, 0, vw, vh);
@@ -673,17 +688,19 @@ export class Game {
         l.fillRect(x - r, y - r, r * 2, r * 2);
       }
     }
+    g.save();
+    g.setTransform(1, 0, 0, 1, 0, 0);
     g.globalCompositeOperation = 'multiply';
     g.drawImage(this.light, 0, 0);
-    g.globalCompositeOperation = 'source-over';
+    g.restore();
     if (k > 0.02) {
       const A = this.assets.A;
       g.globalAlpha = Math.min(1, k * 1.15);
       for (const d of list) {
         const o = d.o;
         if (!o) continue;
-        if (o.kind === 'building') { const lit = A.get(`${o.key}:lit`); if (lit) g.drawImage(lit, o.x - cx, o.y - cy); }
-        else if (o.kind === 'lamp') g.drawImage(A.get('lamp:on'), o.x - cx, o.y - cy);
+        if (o.kind === 'building') { const lit = A.get(`${o.key}:lit`); if (lit) this.img(g, lit, o.x - cx, o.y - cy); }
+        else if (o.kind === 'lamp') this.img(g, A.get('lamp:on'), o.x - cx, o.y - cy);
       }
       g.globalAlpha = 1;
       // soft halos around lanterns

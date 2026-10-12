@@ -108,7 +108,7 @@
         if (!(img instanceof HTMLCanvasElement) || !img.width) bad.push(o.key);
       }
       assert(!bad.length, `missing: ${[...new Set(bad)].join(', ')}`);
-      assert(A.ground.canvas.width === W * T && A.ground.canvas.height === H * T, 'ground size');
+      assert(A.ground.PW === W * T && A.ground.PH === H * T && A.ground.QW === W * T * 2, 'ground size');
     });
   }
   const canvas = document.createElement('canvas');

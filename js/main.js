@@ -12,6 +12,8 @@ import { SKINS, HAIRS, SHIRTS, PANTS } from './palette.js';
 import { unpack } from './art-core.js';
 
 const $ = (s, r = document) => r.querySelector(s);
+// A fresh canvas holding a copy of a sprite at its stored size (CSS decides how big it shows).
+const copyOf = (src, props = {}) => { const c = Object.assign(document.createElement('canvas'), props); c.width = src.width; c.height = src.height; c.getContext('2d').drawImage(src, 0, 0); return c; };
 const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.createElement(tag), props); e.append(...kids.filter((k) => k != null)); return e; };
 // Yield so the loading bar can paint (falls back to a timer when the tab is hidden and rAF is paused).
 const nextFrame = () => new Promise((r) => { requestAnimationFrame(() => setTimeout(r, 0)); setTimeout(r, 60); });
@@ -254,8 +256,7 @@ function buildToolbar(fresh = null) {
   for (const it of LOTS) {
     const have = S.found.includes(it.lot.id);
     const b = el('button', { className: `slot${have ? '' : ' missing'}${fresh === it.lot.id ? ' new' : ''}`, title: have ? it.lot.title : `Not found yet (${it.district.name})` });
-    const c = el('canvas', { width: 32, height: 32 });
-    c.getContext('2d').drawImage(iconFor(it.lot), 0, 0);
+    const c = copyOf(iconFor(it.lot));
     b.append(c);
     if (!have) b.append(el('span', { className: 'q', textContent: '?' }));
     b.onclick = () => {
@@ -296,8 +297,7 @@ function tabCollection(c) {
     for (const it of here) {
       const have = S.found.includes(it.lot.id);
       const b = el('button', { className: `slot${have ? '' : ' missing'}${it === selected ? ' sel' : ''}`, title: have ? it.lot.title : '???' });
-      const cv = el('canvas', { width: 32, height: 32 });
-      cv.getContext('2d').drawImage(iconFor(it.lot), 0, 0);
+      const cv = copyOf(iconFor(it.lot));
       b.append(cv);
       b.onclick = () => { sfx.select(); selected = it; slots.forEach((s) => s.classList.toggle('sel', s === b)); renderDetail(detail, it); };
       slots.push(b);
@@ -317,10 +317,9 @@ function renderDetail(box, it) {
   box.innerHTML = '';
   const { lot, district: d, code } = it;
   const have = S.found.includes(lot.id);
-  const cv = el('canvas', { width: 64, height: 64 });
+  const cv = copyOf(propFor(lot));
   const pc = cv.getContext('2d');
-  pc.drawImage(propFor(lot), 0, 0);
-  if (!have) { pc.globalCompositeOperation = 'source-in'; pc.fillStyle = 'rgba(59,29,14,.55)'; pc.fillRect(0, 0, 64, 64); }
+  if (!have) { pc.globalCompositeOperation = 'source-in'; pc.fillStyle = 'rgba(59,29,14,.55)'; pc.fillRect(0, 0, cv.width, cv.height); }
   const chips = el('div', { className: 'chips' },
     el('span', { className: 'chip', textContent: code, style: `background:${d.color};color:#fff` }),
     have ? el('span', { className: 'chip status', textContent: lot.status, style: `background:${statusColor[lot.status] || '#6b3a1a'}` }) : null,
@@ -344,12 +343,14 @@ function worldSnapshot() {
   const full = document.createElement('canvas');
   full.width = world.W * T; full.height = world.H * T;
   const g = full.getContext('2d');
-  g.drawImage(assets.ground.canvas, 0, 0);
+  const gr = assets.ground;
+  gr.all();
+  for (const b of gr.bands) g.drawImage(b.canvas, 0, b.y0 / gr.S, gr.QW / gr.S, (b.y1 - b.y0) / gr.S);
   const objs = world.objects.slice().sort((a, b) => a.sortY - b.sortY);
   for (const o of objs) {
     let img = assets.A.get(o.key);
     if (Array.isArray(img)) img = img[0];
-    if (img) g.drawImage(img, o.x, o.y);
+    if (img) g.drawImage(img, o.x, o.y, img.width / gr.S, img.height / gr.S);
   }
   const k = 3, small = document.createElement('canvas');
   small.width = Math.round(full.width / k); small.height = Math.round(full.height / k);
@@ -382,14 +383,13 @@ function tabMap(c) {
       const [x, y] = toCss(it.x + it.w / 2, it.y + 8);
       const have = S.found.includes(it.lot.id);
       let pin;
-      if (have) { pin = el('canvas', { className: 'mpin', width: 32, height: 32, title: it.lot.title }); pin.getContext('2d').drawImage(iconFor(it.lot), 0, 0); }
+      if (have) pin = copyOf(iconFor(it.lot), { className: 'mpin', title: it.lot.title });
       else pin = el('div', { className: 'mq', textContent: '?', title: `Not found yet (${it.district.name})`, style: `background:${it.district.color}` });
       pin.style.left = `${x}px`; pin.style.top = `${y}px`;
       pin.onclick = (e) => { e.stopPropagation(); UI.closeMenu(); sfx.warp(); game.warpTo(it); };
       stage.append(pin);
     }
-    const you = el('canvas', { className: 'mpin you', width: 32, height: 64 });
-    you.getContext('2d').drawImage(assets.A.get('player').down[0], 0, 0);
+    const you = copyOf(assets.A.get('player').down[0], { className: 'mpin you' });
     const [px, py] = toCss(game.player.x, game.player.y);
     you.style.left = `${px}px`; you.style.top = `${py}px`;
     stage.append(you);
@@ -448,8 +448,7 @@ function tabOptions(c) {
   seg('Season', [['auto', `Auto (${cap(autoSeason())})`], ['spring', 'Spring'], ['summer', 'Summer'], ['fall', 'Fall'], ['winter', 'Winter']], S.opts.season, (v) => { S.opts.season = v; save(); rebuildArt(); });
   seg('Zoom', [[0.75, 'Far'], [1, 'Normal'], [1.35, 'Close']], S.opts.zoom, (v) => { S.opts.zoom = v; game.setZoom(v); save(); });
   // appearance
-  const preview = el('canvas', { width: 32, height: 64 });
-  preview.getContext('2d').drawImage(assets.A.get('player').down[0], 0, 0);
+  const preview = copyOf(assets.A.get('player').down[0]);
   const swatches = (list, key) => {
     const s = el('div', { className: 'seg' });
     list.forEach((R, i) => {
@@ -628,7 +627,11 @@ async function boot() {
   requestAnimationFrame(loop);
 }
 
+let lastBand = 0;
 function step(dt) {
+  // finish generating the ground in the background: freely behind the title screen, gently while playing
+  const gr = assets.ground, now = performance.now();
+  if (gr.pending() && (titleUp || now - lastBand > 600)) { gr.buildNext(); lastBand = now; }
   game.update(dt);
   if (titleUp) {
     // slow pan over the valley behind the title

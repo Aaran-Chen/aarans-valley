@@ -53,11 +53,12 @@ export function openDialogue({ name = '', head = '', portrait = null, pages = []
   $('.dhead', el).textContent = head;
   document.body.classList.add('talking');
   const pc = $('.dport canvas', el), g = pc.getContext('2d');
-  g.clearRect(0, 0, 64, 64);
+  pc.width = pc.height = 128;
+  g.clearRect(0, 0, 128, 128);
   if (portrait) {
     g.imageSmoothingEnabled = false;
-    const sc = portrait.width <= 32 ? 2 : 1;
-    g.drawImage(portrait, (64 - portrait.width * sc) / 2, (64 - portrait.height * sc) / 2, portrait.width * sc, portrait.height * sc);
+    const sc = Math.max(1, Math.floor(128 / Math.max(portrait.width, portrait.height)));
+    g.drawImage(portrait, Math.round((128 - portrait.width * sc) / 2), Math.round((128 - portrait.height * sc) / 2), portrait.width * sc, portrait.height * sc);
   }
   el.hidden = false;
   showPage();
