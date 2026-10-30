@@ -27,7 +27,7 @@ $('#aLooking').append(todo(PROFILE.lookingFor));
 $('#fName').textContent = `© ${new Date().getFullYear()} ${PROFILE.name}`;
 const linkBtns = () => [
   ...PROFILE.links.map((l) => el('a', { className: 'btn', href: l.url, target: '_blank', rel: 'noopener', textContent: l.label })),
-  PROFILE.email ? el('a', { className: 'btn', href: `mailto:${PROFILE.email}`, textContent: PROFILE.email }) : null,
+  PROFILE.email && !PROFILE.email.startsWith('TODO') ? el('a', { className: 'btn', href: `mailto:${PROFILE.email}`, textContent: PROFILE.email }) : null,
 ];
 $('#hLinks').append(...linkBtns());
 $('#cLinks').append(...linkBtns());
@@ -64,10 +64,10 @@ function render() {
         el('span', { className: 'chip', textContent: `${d.short[0].toUpperCase()}${i + 1}` }));
       const more = el('details', {}, el('summary', { textContent: 'More' }), el('p', {}, todo(lot.body)));
       if (lot.points?.length) more.append(el('ul', {}, ...lot.points.map((p) => el('li', {}, todo(p)))));
-      if (lot.links?.length) more.append(el('div', { className: 'row' }, ...lot.links.map((l) => el('a', { className: 'btn', href: l.url, target: '_blank', rel: 'noopener', textContent: l.label }))));
+      const links = lot.links?.length ? el('div', { className: 'links' }, ...lot.links.map((l) => el('a', { className: 'btn sm', href: l.url, target: '_blank', rel: 'noopener', textContent: `${l.label} \u2197` }))) : null;
       cards.append(el('article', { className: 'card' },
         el('div', { className: 'top' }, icon, el('div', {}, el('h4', { textContent: lot.title }), chips)),
-        el('p', { className: 'one' }, todo(lot.oneLiner)), more));
+        el('p', { className: 'one' }, todo(lot.oneLiner)), links, more));
     });
     root.append(el('div', { className: 'group' }, el('h3', {}, el('i', { style: `background:${d.color}` }), d.name), el('p', { textContent: d.summary }), cards));
   }

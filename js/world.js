@@ -14,22 +14,34 @@ import { GROUND } from './art-nature.js';
 import { hash, rng } from './art-core.js';
 import { DISTRICTS } from '../content.js';
 
-export const W = 64, H = 56, T = 32;
+// Old content.js slot names still work.
+const SLOT_ALIAS = { nw: 'w', ne: 'e', sw: 's', se: 's', n: 'n', e: 'e', w: 'w', s: 's' };
+// Which street each district gets: its own `slot`, else the first free one.
+const SLOT_OF = {};
+for (const d of DISTRICTS) {
+  let slot = SLOT_ALIAS[d.slot] || d.slot;
+  if (!['n', 'e', 'w', 's'].includes(slot) || SLOT_OF[slot]) slot = ['n', 'e', 'w', 's'].find((s) => !SLOT_OF[s]);
+  if (slot) SLOT_OF[slot] = d; // more than four districts: the extras only show on the classic site
+}
+// Displays stand in facing pairs every 3 tiles, starting FIRST tiles out from the square
+// (the north arch and the east/west name boards need the first few tiles).
+const FIRST = { n: 3, e: 3, w: 3, s: 1 };
+const pairsOn = (slot) => Math.max(1, Math.ceil(Math.min(8, SLOT_OF[slot]?.lots.length || 0) / 2));
+const lastOn = (slot) => FIRST[slot] + 1 + 3 * (pairsOn(slot) - 1); // last tile of the last pair
 
-// Square and the four streets (tiles). Streets are 4 tiles wide.
-const SQ = { x0: 26, x1: 37, y0: 18, y1: 29 };
-const VX = 30; // first column of the north/south streets
-const HY = 22; // first row of the east/west streets
-const ROAD = { y0: 39, y1: 42 }; // Beach Road
+// The map is sized to the streets, so nothing sits behind a long empty walk.
+const SQ = (() => { const x0 = Math.max(20, lastOn('w') + 13), y0 = Math.max(18, lastOn('n') + 11); return { x0, x1: x0 + 11, y0, y1: y0 + 11 }; })();
+const VX = SQ.x0 + 4; // first column of the north/south streets (streets are 4 tiles wide)
+const HY = SQ.y0 + 4; // first row of the east/west streets
+const ROAD = (() => { const y0 = Math.max(SQ.y0 + 14, SQ.y1 + lastOn('s') + 3); return { y0, y1: y0 + 3 }; })(); // Beach Road
+const SAND = ROAD.y1 + 1, SEA = ROAD.y1 + 5, PIER_END = SEA + 4;
+export const W = SQ.x1 + Math.max(lastOn('e') + 14, 22), H = SEA + 7, T = 32;
 export const ARMS = {
   n: { axis: 'v', dir: -1, start: SQ.y0 - 1, cross: VX, label: 'north' },
   s: { axis: 'v', dir: 1, start: SQ.y1 + 1, cross: VX, label: 'south' },
   e: { axis: 'h', dir: 1, start: SQ.x1 + 1, cross: HY, label: 'east' },
   w: { axis: 'h', dir: -1, start: SQ.x0 - 1, cross: HY, label: 'west' },
 };
-// Old content.js slot names still work.
-const SLOT_ALIAS = { nw: 'w', ne: 'e', sw: 's', se: 's', n: 'n', e: 'e', w: 'w', s: 's' };
-
 export function buildWorld() {
   const tiles = new Uint8Array(W * H).fill(GROUND.GRASS);
   const solid = new Uint8Array(W * H);
@@ -67,36 +79,30 @@ export function buildWorld() {
   // ---------------------------------------------------------------------------
   // Terrain: square, streets, Beach Road, beach, sea, pier
   // ---------------------------------------------------------------------------
-  fill(0, 43, W - 1, 46, GROUND.SAND);
-  fill(0, 47, W - 1, H - 1, GROUND.WATER);
+  fill(0, SAND, W - 1, SEA - 1, GROUND.SAND);
+  fill(0, SEA, W - 1, H - 1, GROUND.WATER);
   for (let x = 0; x < W; x++) {
     const h = hash(x, 0, 77);
-    if (h < 0.3) tiles[idx(x, 47)] = GROUND.SAND;
-    else if (h > 0.82 && x > 3 && x < W - 4 && (x < 29 || x > 34)) tiles[idx(x, 46)] = GROUND.WATER;
+    if (h < 0.3) tiles[idx(x, SEA)] = GROUND.SAND;
+    else if (h > 0.82 && x > 3 && x < W - 4 && (x < VX - 1 || x > VX + 4)) tiles[idx(x, SEA - 1)] = GROUND.WATER;
   }
   fill(SQ.x0, SQ.y0, SQ.x1, SQ.y1, GROUND.COBBLE);
   fill(5, ROAD.y0, W - 6, ROAD.y1, GROUND.COBBLE);
-  fill(VX + 1, ROAD.y1 + 1, VX + 2, 52, GROUND.PLANK);
+  fill(VX + 1, SAND, VX + 2, PIER_END, GROUND.PLANK);
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (tiles[idx(x, y)] === GROUND.WATER) block(x, y);
 
   // Forest border: top, left and right edges down to the beach.
   for (let x = 0; x < W; x++) block(x, 0, x, 1);
-  for (let y = 0; y <= 42; y++) { block(0, y, 1, y); block(W - 2, y, W - 1, y); }
+  for (let y = 0; y <= ROAD.y1; y++) { block(0, y, 1, y); block(W - 2, y, W - 1, y); }
   for (let x = 1; x < W; x += 3) tree(x, 1, (x / 3) % 3 === 1 ? 'pine' : 'oak', x % 2);
   for (let x = 2; x < W; x += 3) tree(x, 0, 'pine', (x >> 1) % 2);
-  for (let y = 4; y <= 40; y += 3) { tree(0, y, y % 2 ? 'oak' : 'pine', y % 3 === 0 ? 1 : 0, 16); tree(W - 1, y, y % 2 ? 'pine' : 'oak', y % 3 === 0 ? 0 : 1, (W - 1) * T + 16); }
+  for (let y = 4; y <= ROAD.y1 - 2; y += 3) { tree(0, y, y % 2 ? 'oak' : 'pine', y % 3 === 0 ? 1 : 0, 16); tree(W - 1, y, y % 2 ? 'pine' : 'oak', y % 3 === 0 ? 0 : 1, (W - 1) * T + 16); }
 
   // ---------------------------------------------------------------------------
   // Streets and districts
   // ---------------------------------------------------------------------------
   const placed = [];
-  const bySlot = {};
-  for (const d of DISTRICTS) {
-    let slot = SLOT_ALIAS[d.slot] || d.slot;
-    if (!ARMS[slot] || bySlot[slot]) slot = ['n', 'e', 'w', 's'].find((s) => !bySlot[s]);
-    if (!slot) continue; // more than four districts: the extras only show on the classic site
-    bySlot[slot] = d;
-  }
+  const bySlot = { ...SLOT_OF };
 
   // Tile helpers for an arm: `t` counts tiles out from the square, `c` across the street (0-3).
   const at = (arm, t, c) => (arm.axis === 'v' ? [arm.cross + c, arm.start + arm.dir * t] : [arm.start + arm.dir * t, arm.cross + c]);
@@ -109,9 +115,8 @@ export function buildWorld() {
     const d = bySlot[slot];
     if (!d) continue;
     const lots = d.lots.slice(0, 8);
-    const pairs = Math.max(1, Math.ceil(lots.length / 2));
-    const lastT = 4 + 3 * (pairs - 1);
-    const endT = slot === 's' ? ROAD.y0 - arm.start - 1 : lastT + (arm.axis === 'v' ? 2 : 10);
+    const lastT = lastOn(slot);
+    const endT = slot === 's' ? ROAD.y0 - arm.start - 1 : lastT + (arm.axis === 'v' ? 2 : 9);
     // the street itself
     const [sx0, sy0, sx1, sy1] = rectOf(arm, 0, endT, 0, 3);
     fill(sx0, sy0, sx1, sy1, GROUND.COBBLE);
@@ -121,7 +126,7 @@ export function buildWorld() {
     d._placed = [];
     lots.forEach((lot, i) => {
       const p = Math.floor(i / 2), side = i % 2;
-      const t0 = 3 + 3 * p;
+      const t0 = FIRST[slot] + 3 * p;
       const [x0, y0, x1, y1] = rectOf(arm, t0, t0 + 1, side ? 4 : -2, side ? 5 : -1);
       const code = d.short[0].toUpperCase() + (i + 1);
       const o = sprite(`prop:${lot.sprite || 'generic'}`, x0, y1, 64, 64, { kind: 'prop', lot, district: d, code, shadow: [x0 * T + 32, (y1 + 1) * T - 5, 26, 6] });
@@ -158,7 +163,7 @@ export function buildWorld() {
     interact.push({ id: `door:${d.id}`, kind: 'door', district: d, x: door.doorX * T, y: door.doorY * T, w: 2 * T, h: T, label: d.name });
     // lamps along the street edges, between display pairs
     // lamps only at the far end of the street, where they can't stand in front of a display
-    for (const c of [-1, 4]) { const [lx, ly] = at(arm, Math.max(lastT + 2, endT - 1), c); lamp(lx, ly); }
+    for (const c of [-1, 4]) { const [lx, ly] = at(arm, slot === 's' ? endT : Math.max(lastT + 2, endT - 1), c); lamp(lx, ly); }
 
     const [gx, gy] = at(arm, 1, 1);
     d._gate = { x: (gx + (arm.axis === 'v' ? 1 : 0)) * T, y: gy * T + (arm.axis === 'v' ? 24 : 32), dir: { n: 'up', s: 'down', e: 'right', w: 'left' }[slot] };
@@ -209,21 +214,21 @@ export function buildWorld() {
   interact.push({ id: 'field', kind: 'field', x: fx0 * T, y: fy0 * T, w: 6 * T, h: 4 * T, label: 'Field' });
   const chickens = { x0: fx0, y0: fy0 + 5, x1: VX - 14, y1: ROAD.y0 - 1 };
   areas.push({ id: 'home', kind: 'home', name: "Aaran's House", color: '#c9763a', x0: 2, y0: SQ.y1 + 1, x1: VX - 3, y1: ROAD.y0 - 1, chickens, label: [VX - 8, ROAD.y0 - 6.6] });
-  for (const x of [8, 20, 40, 52]) lamp(x, ROAD.y1 + 1);
-  lamp(VX + 2, 50);
+  for (const x of [6, VX - 8, VX + 11, W - 7]) lamp(x, SAND);
+  lamp(VX + 2, SEA + 3);
 
-  sprite('campfire', VX - 6, 44, 32, 32, { kind: 'campfire', anim: 'campfire' });
-  block(VX - 6, 44);
-  interact.push({ id: 'campfire', kind: 'campfire', x: (VX - 6) * T, y: 44 * T, w: T, h: T, label: 'Campfire' });
-  lights.push({ x: (VX - 6) * T + 16, y: 44 * T + 16, r: 130, color: '#ff9a4a', k: 1, flicker: true });
-  for (const x of [VX - 9, VX - 4]) { sprite('log', x, 45, 64, 32); block(x, 45, x + 1, 45); }
-  for (const [x, y, v] of [[10, 44, 0], [46, 45, 1], [55, 43, 0], [18, 46, 1], [60, 45, 0]]) { sprite(`rock${v}`, x, y, 32, 32); block(x, y); }
+  sprite('campfire', VX - 6, SAND + 1, 32, 32, { kind: 'campfire', anim: 'campfire' });
+  block(VX - 6, SAND + 1);
+  interact.push({ id: 'campfire', kind: 'campfire', x: (VX - 6) * T, y: (SAND + 1) * T, w: T, h: T, label: 'Campfire' });
+  lights.push({ x: (VX - 6) * T + 16, y: (SAND + 1) * T + 16, r: 130, color: '#ff9a4a', k: 1, flicker: true });
+  for (const x of [VX - 9, VX - 4]) { sprite('log', x, SAND + 2, 64, 32); block(x, SAND + 2, x + 1, SAND + 2); }
+  for (const [x, y, v] of [[9, SAND + 1, 0], [VX + 14, SAND + 2, 1], [W - 9, SAND, 0], [14, SAND + 3, 1], [W - 4, SAND + 2, 0]]) { sprite(`rock${v}`, x, y, 32, 32); block(x, y); }
   for (let k = 0; k < 16; k++) {
-    const x = 3 + ((R() * (W - 6)) | 0), y = 44 + ((R() * 3) | 0);
+    const x = 3 + ((R() * (W - 6)) | 0), y = SAND + 1 + ((R() * 3) | 0);
     if (solid[idx(x, y)] || tiles[idx(x, y)] !== GROUND.SAND || (x >= VX && x <= VX + 3)) continue;
     sprite(`shell${k % 2}`, x, y, 16, 16, { dx: (R() * 12) | 0, dy: -((R() * 12) | 0) });
   }
-  interact.push({ id: 'pierEnd', kind: 'pier', x: (VX + 1) * T, y: 52 * T, w: 2 * T, h: T, label: 'End of the pier' });
+  interact.push({ id: 'pierEnd', kind: 'pier', x: (VX + 1) * T, y: PIER_END * T, w: 2 * T, h: T, label: 'End of the pier' });
 
   // ---------------------------------------------------------------------------
   // Corners: Pond Park (north-east) and an orchard (north-west)
@@ -262,7 +267,7 @@ export function buildWorld() {
 
   // Tall grass tufts on open grass, away from streets.
   for (let k = 0; k < 1200 && tufts.length < 120; k++) {
-    const x = 2 + ((R() * (W - 4)) | 0), y = 2 + ((R() * 40) | 0);
+    const x = 2 + ((R() * (W - 4)) | 0), y = 2 + ((R() * (ROAD.y0 - 2)) | 0);
     if (solid[idx(x, y)] || tiles[idx(x, y)] !== GROUND.GRASS || noFlowers.has(`${x},${y}`)) continue;
     const near = [[0, 1], [0, -1], [1, 0], [-1, 0]].some(([dx, dy]) => tiles[idx(x + dx, y + dy)] !== GROUND.GRASS);
     if (near && R() < 0.7) continue;
@@ -274,5 +279,6 @@ export function buildWorld() {
   return {
     W, H, T, tiles, solid, objects, interact, areas, lights, tufts, placed, bySlot,
     decals: { lilypads: lily, clear: noFlowers }, spawn, petSpawn, chickens,
+    pier: { x: VX + 1, y0: SAND, y1: PIER_END }, square: SQ, road: ROAD,
   };
 }

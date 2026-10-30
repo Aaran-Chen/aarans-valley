@@ -7,9 +7,9 @@ export const PROFILE = {
   about: "High schooler in TKS Innovate 2026-27. My focus this year is humanoid robotics and object manipulation, open-sourced on GitHub by April 11, 2027. Around that I build software tools I actually use every day, and I study for the F=ma physics exam.",
   lookingFor: "TODO: what you're open to (internships, mentors, collaborators).",
   links: [
-    { label: "GitHub", url: "https://github.com/TODO" },
-    { label: "LinkedIn", url: "https://www.linkedin.com/in/TODO" },
-    { label: "Medium", url: "https://medium.com/@TODO" },
+    { label: "TKS build: Clancy", url: "https://github.com/Aaran-Chen/Clancy" },
+    { label: "GitHub", url: "https://github.com/Aaran-Chen" },
+    { label: "Medium", url: "https://medium.com/@aaran.c4" },
   ],
   email: "TODO@example.com",
 };
@@ -19,19 +19,19 @@ export const GAME = {
   title: "Aaran's Valley",
   petName: "Bolt",
   // Default look for new visitors (indexes into js/palette.js: SKINS, HAIRS, SHIRTS, PANTS; style 0-2).
-  look: { skin: 1, hair: 1, shirt: 0, pants: 0, style: 0 },
+  look: { skin: 0, hair: 1, shirt: 0, pants: 0, style: 0 },
   welcome: [
     "Beep boop! Welcome to {valley}. I'm {pet}, the robot who keeps an eye on the place.",
-    "Every fenced yard here is a district, and every display inside one is something Aaran has built or is building.",
+    "Each street off the town square is a district, and every display along it is something Aaran has built or is building.",
     "Walk up to a display and press E (or tap it) to read about it. You'll collect each project you find in your toolbar.",
-    "Press M for the map, Esc for the menu, and the Classic site button (top left) if you'd rather just read a normal page. Have fun!",
+    "The minimap (top right) shows where everything is: click any spot on it to walk there. Press Esc for the menu, or the Classic site button (top left) if you'd rather just read a normal page. Have fun!",
   ],
   // Shown instead of `welcome` on touch screens.
   welcomeTouch: [
     "Beep boop! Welcome to {valley}. I'm {pet}, the robot who keeps an eye on the place.",
-    "Every fenced yard here is a district, and every display inside one is something Aaran has built or is building.",
+    "Each street off the town square is a district, and every display along it is something Aaran has built or is building.",
     "Tap the ground to walk there. Tap a display (or the A button when you're next to one) to read about it.",
-    "The map and menu buttons are top left, next to the page icon for the classic site. Have fun!",
+    "Tap the minimap (top right) to walk anywhere. The menu is top left, next to the page icon for the classic site. Have fun!",
   ],
   tipsTouch: [
     "Tip: the colour of a district's arch matches its pin on the map.",
@@ -86,7 +86,7 @@ export const DISTRICTS = [
         oneLiner: "My TKS north star: teach a humanoid-style hand and arm to pick up and handle real objects.",
         body: "The focus project for my TKS year. The goal is something that adds to what people know about object manipulation, not a tutorial rebuild. Presenting at TKS Demo Day and open-sourcing it on GitHub by April 11, 2027, with feedback from two mentors in the field along the way.",
         points: ["Target: Demo Day presentation", "Open source on GitHub by April 11, 2027", "Two field mentors for feedback"],
-        links: [],
+        links: [{ label: "Current build: Clancy", url: "https://github.com/Aaran-Chen/Clancy" }, { label: "My TKS article", url: "https://medium.com/@aaran.c4/it-looks-so-good-why-cant-i-have-it" }],
       },
       {
         id: "clancy",
@@ -97,7 +97,7 @@ export const DISTRICTS = [
         oneLiner: "A robotic arm driven by an AI model instead of hand-written motion scripts.",
         body: "TODO: describe what Clancy can do today, the hardware, and the model that drives it.",
         points: ["TODO: hardware", "TODO: model", "TODO: what it can pick up"],
-        links: [],
+        links: [{ label: "Clancy on GitHub", url: "https://github.com/Aaran-Chen/Clancy" }],
       },
       {
         id: "vex",
@@ -130,7 +130,7 @@ export const DISTRICTS = [
         oneLiner: "The Knowledge Society's 10-month program for building hard things early.",
         body: "Explore, Build, Apply, Impact, Breakthrough. My year is built around the humanoid manipulation project, plus three side projects shared publicly and a weekly build-in-public update.",
         points: ["Focus: humanoid manipulation", "3 side projects by April 11, 2027", "Weekly progress posts"],
-        links: [],
+        links: [{ label: "TKS build: Clancy", url: "https://github.com/Aaran-Chen/Clancy" }, { label: "My TKS article", url: "https://medium.com/@aaran.c4/it-looks-so-good-why-cant-i-have-it" }],
       },
       {
         id: "fma",
@@ -196,7 +196,7 @@ export const DISTRICTS = [
         oneLiner: "A fork of the Handy dictation app that adapts tone to the app you're typing into.",
         body: "Built in Rust and Tauri on my PC. A local model running in Ollama rewrites the transcript to fit where it's going, so a Slack message and an essay don't come out the same.",
         points: ["Rust + Tauri", "Local LLM via Ollama", "No cloud round trip"],
-        links: [],
+        links: [{ label: "Code on GitHub", url: "https://github.com/Aaran-Chen/handy-with-vibecoded-features" }],
       },
       {
         id: "dashboard",

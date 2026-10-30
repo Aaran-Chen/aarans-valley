@@ -10,6 +10,7 @@ import { logo, scaledURL } from './art-ui.js';
 import { petFrames } from './art-chars.js';
 import { SKINS, HAIRS, SHIRTS, PANTS } from './palette.js';
 import { unpack } from './art-core.js';
+import { createMinimap } from './minimap.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 // A fresh canvas holding a copy of a sprite at its stored size (CSS decides how big it shows).
@@ -49,7 +50,7 @@ const world = buildWorld();
 const LOTS = world.placed;
 const TOTAL = LOTS.length;
 const districtsHere = world.areas.filter((a) => a.kind === 'district' && a.id !== 's2');
-let assets, game, titleUp = true, snapshot = null;
+let assets, game, minimap, titleUp = true, snapshot = null;
 
 const iconFor = (lot) => assets.A.get(`icon:${lot.sprite}`) || assets.A.get('icon:unknown');
 const propFor = (lot) => { const a = assets.A.get(`prop:${lot.sprite || 'generic'}`); return Array.isArray(a) ? a[0] : a; };
@@ -186,7 +187,7 @@ function houseTalk() {
 
 function contactChoices() {
   const out = PROFILE.links.map((l) => ({ label: `${l.label} ↗`, keepOpen: true, action: () => window.open(l.url, '_blank', 'noopener') }));
-  if (PROFILE.email) out.push({ label: `Email: ${PROFILE.email}`, keepOpen: true, action: () => { location.href = `mailto:${PROFILE.email}`; } });
+  if (PROFILE.email && !PROFILE.email.startsWith('TODO')) out.push({ label: `Email: ${PROFILE.email}`, keepOpen: true, action: () => { location.href = `mailto:${PROFILE.email}`; } });
   out.push({ label: 'Close', action: () => {} });
   return out;
 }
@@ -429,7 +430,7 @@ function tabAbout(c) {
   if (PROFILE.lookingFor) c.append(el('p', { textContent: PROFILE.lookingFor }));
   c.append(el('div', { className: 'row-btns' },
     ...PROFILE.links.map((l) => el('a', { className: 'linkbtn', href: l.url, target: '_blank', rel: 'noopener', textContent: `${l.label} ↗` })),
-    PROFILE.email ? el('a', { className: 'linkbtn', href: `mailto:${PROFILE.email}`, textContent: 'Email' }) : null,
+    PROFILE.email && !PROFILE.email.startsWith('TODO') ? el('a', { className: 'linkbtn', href: `mailto:${PROFILE.email}`, textContent: 'Email' }) : null,
     el('a', { className: 'linkbtn', href: 'classic.html', textContent: 'Classic website' })));
   c.append(el('p', { className: 'muted', style: 'margin-top:calc(var(--px)*6)', textContent: 'Every pixel in the valley is drawn by code, at 32 pixels per tile: twice the detail of the games that inspired it.' }));
 }
@@ -597,6 +598,15 @@ async function boot() {
     { id: 'about', label: 'About', icon: 'person', render: tabAbout },
     { id: 'options', label: 'Options', icon: 'gear', render: tabOptions },
   ], () => { game.paused = UI.dialogueOpen() || titleUp; refreshHint(); });
+  minimap = createMinimap({
+    canvas: $('#minimap canvas'), world, game,
+    isFound: (id) => S.found.includes(id),
+    onPick: (p) => {
+      unlockAudio();
+      if (UI.dialogueOpen() || UI.menuOpen()) return;
+      if (p.lot) game.walkTo(p.lot, () => interact(p.lot)); else game.walkToPoint(p.x, p.y);
+    },
+  });
   $('#loading').hidden = true;
 
   // attract mode camera for the title screen
@@ -616,7 +626,7 @@ async function boot() {
   addEventListener('resize', () => { game.resize(); game.snapCamera(); sizeLogo(); if (UI.currentTab() === 'map') UI.refreshMenu(); });
   addEventListener('pagehide', save);
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
-  setInterval(() => { if (!titleUp) { updateHUD(); if (game.player.y > 50 * T && game.groundAt(game.player.x, game.player.y - 2) === 6 && !S.flags.pier) { S.flags.pier = true; checkQuests(); } } }, 1000);
+  setInterval(() => { if (!titleUp) { updateHUD(); if (game.player.y > (world.pier.y1 - 2) * T && game.groundAt(game.player.x, game.player.y - 2) === 6 && !S.flags.pier) { S.flags.pier = true; checkQuests(); } } }, 1000);
   setInterval(() => { if (!titleUp) save(); }, 15000);
 
   showTitle();
@@ -643,6 +653,7 @@ function step(dt) {
     game.cam.y = Math.max(0, Math.min(world.H * T - vh, 15 * T - vh / 2 + Math.cos(t * 0.8) * 260));
   }
   game.render();
+  if (!titleUp) minimap.draw(game.t);
 }
 
 function onKey(e) {

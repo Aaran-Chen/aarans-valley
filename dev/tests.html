@@ -73,7 +73,7 @@
     const bad = [];
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       if (tiles[y * W + x] !== GROUND.COBBLE) continue;
-      if (x >= 26 && x <= 37 && y >= 18 && y <= 29) continue; // the square has its fountain and benches
+      const q = world.square; if (x >= q.x0 && x <= q.x1 && y >= q.y0 && y <= q.y1) continue; // the square has its fountain and benches
       if (!free(x, y)) bad.push(`${x},${y}`);
     }
     assert(!bad.length, `blocked street tiles: ${bad.slice(0, 8).join(' ')}`);
@@ -95,7 +95,7 @@
   });
   await t('world: water is solid except the pier and dock', () => {
     for (let i = 0; i < W * H; i++) if (tiles[i] === GROUND.WATER) assert(solid[i], `open water at ${i % W},${(i / W) | 0}`);
-    for (let y = 43; y <= 52; y++) assert(free(31, y), `pier blocked at y=${y}`);
+    for (let y = world.pier.y0; y <= world.pier.y1; y++) assert(free(world.pier.x, y), `pier blocked at y=${y}`);
   });
   for (const season of ['spring', 'summer', 'fall', 'winter']) {
     await t(`art: every object has a sprite in ${season}`, () => {
@@ -122,9 +122,9 @@
     game.player.x = world.spawn.x; game.player.y = world.spawn.y;
     for (let i = 0; i < 60; i++) game.move(0, -4); // walk north into the fountain
     assert(game.player.y > 24 * T, `walked through the fountain to y=${game.player.y}`);
-    game.player.x = 31 * T + 16; game.player.y = 52 * T + 20;
+    game.player.x = world.pier.x * T + 16; game.player.y = world.pier.y1 * T + 20;
     for (let i = 0; i < 60; i++) game.move(0, 4); // walk off the end of the pier
-    assert(game.player.y < 53 * T + 1, `walked onto water y=${game.player.y}`);
+    assert(game.player.y < (world.pier.y1 + 1) * T + 1, `walked onto water y=${game.player.y}`);
   });
   await t('engine: keyboard walking moves the player and animates', () => {
     game.player.x = world.spawn.x; game.player.y = world.spawn.y; game.paused = false;

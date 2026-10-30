@@ -48,6 +48,8 @@ canvas.pix, .pix { image-rendering: pixelated; image-rendering: crisp-edges; }
 #clock .season { font-size: 0.8em; color: var(--ink-soft); }
 #found { display: flex; align-items: center; gap: calc(var(--px) * 3); padding: 0 calc(var(--px) * 2); font-weight: 700; }
 #found .ico { width: calc(var(--px) * 12); height: calc(var(--px) * 12); }
+#minimap { padding: 0; line-height: 0; }
+#minimap canvas { display: block; width: calc(var(--mw) * 3px); height: calc(var(--mh) * 3px); cursor: var(--cursor-hand); }
 
 #banner { position: absolute; top: calc(var(--px) * 30); left: 50%; transform: translate(-50%, -12px); opacity: 0; transition: opacity .35s, transform .35s; text-align: center; padding: 0 calc(var(--px) * 6); pointer-events: none; white-space: nowrap; }
 #banner.show { opacity: 1; transform: translate(-50%, 0); }
@@ -198,6 +200,7 @@ body.inmenu #hud { visibility: hidden; }
   .wbtn span { display: none; }
   .hud-left .wbtn { padding: 0 var(--px); }
   #clock { min-width: 0; }
+  #minimap canvas { width: calc(var(--mw) * 2px); height: calc(var(--mh) * 2px); }
   .coll { grid-template-columns: 1fr; height: auto; }
   .opts { grid-template-columns: 1fr; }
   .dport { display: none; }

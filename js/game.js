@@ -675,7 +675,9 @@ export class Game {
     if (k > 0.02) {
       l.globalCompositeOperation = 'lighter';
       const flick = 0.92 + Math.sin(this.t * 13) * 0.05 + Math.sin(this.t * 7.3) * 0.03;
-      const lights = this.world.lights.concat(this.buildingLights());
+      // a soft glow around the player so they never turn into a silhouette at night
+      const p = this.player;
+      const lights = this.world.lights.concat(this.buildingLights(), [{ x: p.x, y: p.y - 22, r: 72, color: '#fff2e0', k: 0.85 }]);
       for (const L of lights) {
         const x = L.x - cx, y = L.y - cy, r = L.r * (L.flicker ? flick : 1);
         if (x < -r || y < -r || x > vw + r || y > vh + r) continue;
