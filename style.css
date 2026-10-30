@@ -193,7 +193,7 @@ body.inmenu #hud { visibility: hidden; }
 .coarse #tAct { width: 60px; height: 60px; }
 @media (max-width: 720px) {
   .mwrap { width: calc(100vw - 12px); height: calc(100dvh - 12px); }
-  #banner { top: calc(var(--px) * 100); max-width: calc(100vw - 24px); white-space: normal; }
+  #banner { top: 272px; max-width: calc(100vw - 24px); white-space: normal; }
   #toasts { bottom: calc(var(--px) * 56); }
   .toast { max-width: calc(100vw - 100px); }
   .dspeaker { display: block; }

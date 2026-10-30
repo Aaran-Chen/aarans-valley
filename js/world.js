@@ -146,7 +146,7 @@ export function buildWorld() {
       interact.push({ id: `sign:${d.id}`, kind: 'areaSign', district: d, x: (VX - 1) * T, y: ey * T, w: T, h: T, label: `${d.name} arch` });
     } else {
       const [x0, , x1, y1] = rectOf(arm, 0, 2, -1, -1);
-      sprite(`board:${d.name}`, x0, y1, 112, 72, { kind: 'board', text: d.name, color: d.color });
+      sprite(`board:${d.name}`, x0, y1, 112, 72, { kind: 'board', text: d.name, color: d.color, dx: slot === 'w' ? -16 : 0 });
       block(x0, y1, x1, y1);
       interact.push({ id: `sign:${d.id}`, kind: 'areaSign', district: d, x: x0 * T, y: y1 * T, w: 3 * T, h: T, label: `${d.name} sign` });
     }
@@ -163,7 +163,8 @@ export function buildWorld() {
     interact.push({ id: `door:${d.id}`, kind: 'door', district: d, x: door.doorX * T, y: door.doorY * T, w: 2 * T, h: T, label: d.name });
     // lamps along the street edges, between display pairs
     // lamps only at the far end of the street, where they can't stand in front of a display
-    for (const c of [-1, 4]) { const [lx, ly] = at(arm, slot === 's' ? endT : Math.max(lastT + 2, endT - 1), c); lamp(lx, ly); }
+    // (the short south street gets one, a tile out, so it doesn't cover a display or the shipping bin)
+    for (const c of slot === 's' ? [6] : [-1, 4]) { const [lx, ly] = at(arm, slot === 's' ? endT : Math.max(lastT + 2, endT - 1), c); lamp(lx, ly); }
 
     const [gx, gy] = at(arm, 1, 1);
     d._gate = { x: (gx + (arm.axis === 'v' ? 1 : 0)) * T, y: gy * T + (arm.axis === 'v' ? 24 : 32), dir: { n: 'up', s: 'down', e: 'right', w: 'left' }[slot] };
@@ -181,7 +182,7 @@ export function buildWorld() {
   block(VX, SQ.y0 + 4, VX + 3, SQ.y0 + 5);
   interact.push({ id: 'fountain', kind: 'fountain', x: VX * T, y: (SQ.y0 + 4) * T, w: 4 * T, h: 2 * T, label: 'Fountain' });
   lights.push({ x: (VX + 2) * T, y: (SQ.y0 + 4) * T + 16, r: 90, color: '#9fd8ff', k: 0.45 });
-  sprite('welcome', SQ.x0, SQ.y0 + 1, 112, 72, { kind: 'welcome' });
+  sprite('welcome', SQ.x0, SQ.y0 + 1, 112, 72, { kind: 'welcome', dy: 8 });
   block(SQ.x0, SQ.y0 + 1, SQ.x0 + 3, SQ.y0 + 1);
   interact.push({ id: 'welcome', kind: 'welcome', x: SQ.x0 * T, y: (SQ.y0 + 1) * T, w: 4 * T, h: T, label: 'Welcome sign' });
   sprite('board', SQ.x1 - 1, SQ.y0 + 1, 64, 80, { kind: 'board' });
@@ -194,7 +195,7 @@ export function buildWorld() {
   block(SQ.x1 - 2, SQ.y1 - 1, SQ.x1 - 1, SQ.y1 - 1);
   interact.push({ id: 'bench:sq', kind: 'bench', x: (SQ.x1 - 2) * T, y: (SQ.y1 - 1) * T, w: 2 * T, h: T, label: 'Bench' });
   for (const [px, py] of [[SQ.x0, SQ.y0 + 3], [SQ.x1, SQ.y0 + 3], [SQ.x0, SQ.y1 - 3], [SQ.x1, SQ.y1 - 3]]) { sprite('planter', px, py, 32, 32); block(px, py); }
-  for (const [x, y] of [[SQ.x0, SQ.y0], [SQ.x1, SQ.y0 + 2], [SQ.x0, SQ.y1], [SQ.x1, SQ.y1]]) lamp(x, y);
+  for (const [x, y] of [[SQ.x0, SQ.y1], [SQ.x1, SQ.y1]]) lamp(x, y); // the top corners hold the welcome sign and quest board
 
   // ---------------------------------------------------------------------------
   // Beach Road: Aaran's house (west of the south street) and the beach

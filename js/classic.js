@@ -29,8 +29,8 @@ const linkBtns = () => [
   ...PROFILE.links.map((l) => el('a', { className: 'btn', href: l.url, target: '_blank', rel: 'noopener', textContent: l.label })),
   PROFILE.email && !PROFILE.email.startsWith('TODO') ? el('a', { className: 'btn', href: `mailto:${PROFILE.email}`, textContent: PROFILE.email }) : null,
 ];
-$('#hLinks').append(...linkBtns());
-$('#cLinks').append(...linkBtns());
+$('#hLinks').append(...linkBtns().filter(Boolean));
+$('#cLinks').append(...linkBtns().filter(Boolean));
 
 const total = DISTRICTS.reduce((n, d) => n + d.lots.length, 0);
 $('#pLead').textContent = `${total} projects across ${DISTRICTS.length} areas. In the game, each one is a display you can walk up to in ${GAME.title}.`;
